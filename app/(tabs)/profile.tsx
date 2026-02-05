@@ -101,11 +101,11 @@ export default function ProfileScreen() {
             </>
           )}
 
-          <View style={styles.detailsContainer}>
+          {/*<View style={styles.detailsContainer}>
             <Text style={styles.detailText}>ID: {user.id.slice(0, 8)}...</Text>
             <Text style={styles.detailText}>Joined: {new Date(user.created_at).toLocaleDateString()}</Text>
             <Text style={styles.detailText}>First Order: {user.is_first_order_completed ? 'Completed' : 'Pending'}</Text>
-          </View>
+          </View>*/}
 
 
           {isGuest && (
