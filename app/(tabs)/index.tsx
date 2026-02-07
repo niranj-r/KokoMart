@@ -22,7 +22,7 @@ import CuttingModal from '@/components/CuttingModal';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { products, addToCart, cartItemCount } = useApp();
+  const { products, addToCart, cartItemCount, cart, removeFromCart } = useApp();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const tickerPosition = useRef(new Animated.Value(0)).current;
