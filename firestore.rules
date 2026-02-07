@@ -35,7 +35,7 @@ service cloud.firestore {
     // - Users can cancel their own orders (update status)
     match /orders/{orderId} {
       allow create: if isAuthenticated();
-      allow read, update: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow read, update: if isAuthenticated(); // Allow delivery personnel to access
     }
   }
 }
