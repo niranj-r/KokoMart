@@ -8,6 +8,8 @@ export interface Product {
     price_change_percentage: number;
     image: string;
     availability: boolean;
+    description?: string;
+    cutting_types?: string[];
 }
 
 export interface UserProfile {
@@ -58,7 +60,7 @@ export interface Order {
     final_amount: number;
     earned_points: number;
     status: OrderStatus;
-    created_at: number | string; // Allow string for ISO dates if needed, or stick to one. AppContext uses Date.now() (number) and string?
-    address?: string;
+    created_at: number;
+    address: string;
     delivery_slot?: string;
 }

@@ -14,9 +14,10 @@ interface CuttingModalProps {
     visible: boolean;
     onClose: () => void;
     onSelect: (cuttingType: string) => void;
+    options?: string[];
 }
 
-const CUTTING_TYPES = [
+const DEFAULT_CUTTING_TYPES = [
     'Curry Cut (Small)',
     'Curry Cut (Medium)',
     'Whole Bird',
@@ -24,7 +25,9 @@ const CUTTING_TYPES = [
     'Minced (Keema)',
 ];
 
-export default function CuttingModal({ visible, onClose, onSelect }: CuttingModalProps) {
+export default function CuttingModal({ visible, onClose, onSelect, options }: CuttingModalProps) {
+    const cuttingOptions = options && options.length > 0 ? options : DEFAULT_CUTTING_TYPES;
+
     return (
         <Modal
             visible={visible}
@@ -44,7 +47,7 @@ export default function CuttingModal({ visible, onClose, onSelect }: CuttingModa
                             </View>
 
                             <View style={styles.optionsContainer}>
-                                {CUTTING_TYPES.map((type) => (
+                                {cuttingOptions.map((type) => (
                                     <TouchableOpacity
                                         key={type}
                                         style={styles.optionButton}
