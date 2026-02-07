@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { TrendingUp, TrendingDown, Minus, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
+import CuttingModal from '@/components/CuttingModal';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -34,17 +35,24 @@ export default function ProductDetailScreen() {
     product.price_direction === 'up'
       ? Colors.priceUp
       : product.price_direction === 'down'
-      ? Colors.priceDown
-      : Colors.priceNeutral;
+        ? Colors.priceDown
+        : Colors.priceNeutral;
 
   const Icon = product.price_direction === 'up' ? TrendingUp : TrendingDown;
   const totalPrice = product.current_price * selectedWeight * quantity;
   const earnPoints = Math.floor(selectedWeight * quantity);
 
-  const handleAddToCart = () => {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleAddToCartRequest = () => {
+    setModalVisible(true);
+  };
+
+  const handleCuttingTypeSelect = (cuttingType: string) => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(product.id, selectedWeight);
+      addToCart(product.id, selectedWeight, cuttingType);
     }
+    setModalVisible(false);
     router.back();
   };
 
@@ -151,11 +159,17 @@ export default function ProductDetailScreen() {
             <Text style={styles.footerLabel}>Total</Text>
             <Text style={styles.footerPrice}>₹{totalPrice.toFixed(2)}</Text>
           </View>
-          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCartRequest}>
             <Text style={styles.addToCartText}>Add to Cart</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      <CuttingModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSelect={handleCuttingTypeSelect}
+      />
     </View>
   );
 }

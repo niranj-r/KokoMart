@@ -64,7 +64,10 @@ export default function CartScreen() {
               <Image source={{ uri: item.product.image }} style={styles.itemImage} />
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.product.name}</Text>
-                <Text style={styles.itemWeight}>{item.weight}kg</Text>
+                <Text style={styles.itemWeight}>
+                  {item.weight}kg
+                  {item.cuttingType ? ` • ${item.cuttingType}` : ''}
+                </Text>
                 <Text style={styles.itemPrice}>
                   ₹{item.product.current_price * item.weight * item.quantity}
                 </Text>
@@ -72,7 +75,7 @@ export default function CartScreen() {
               <View style={styles.quantityControls}>
                 <TouchableOpacity
                   style={styles.quantityButton}
-                  onPress={() => removeFromCart(item.product.id, item.weight)}
+                  onPress={() => removeFromCart(item.product.id, item.weight, item.cuttingType)}
                 >
                   {item.quantity === 1 ? (
                     <Trash2 size={18} color={Colors.priceDown} />
@@ -83,7 +86,7 @@ export default function CartScreen() {
                 <Text style={styles.quantityText}>{item.quantity}</Text>
                 <TouchableOpacity
                   style={styles.quantityButton}
-                  onPress={() => addToCart(item.product.id, item.weight)}
+                  onPress={() => addToCart(item.product.id, item.weight, item.cuttingType!)}
                 >
                   <Plus size={18} color={Colors.charcoal} />
                 </TouchableOpacity>

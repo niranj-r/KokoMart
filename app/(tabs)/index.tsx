@@ -15,6 +15,7 @@ import { Search, TrendingUp, TrendingDown, ShoppingCart } from 'lucide-react-nat
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
+import CuttingModal from '@/components/CuttingModal';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -46,6 +47,22 @@ export default function HomeScreen() {
   const filteredProducts = searchQuery
     ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : products;
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<{ id: string; weight: number } | null>(null);
+
+  const handleAddToCartRequest = (productId: string, weight: number) => {
+    setSelectedProduct({ id: productId, weight });
+    setModalVisible(true);
+  };
+
+  const handleCuttingTypeSelect = (cuttingType: string) => {
+    if (selectedProduct) {
+      addToCart(selectedProduct.id, selectedProduct.weight, cuttingType);
+      setModalVisible(false);
+      setSelectedProduct(null);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -95,12 +112,18 @@ export default function HomeScreen() {
                 key={product.id}
                 product={product}
                 onPress={() => router.push(`/product/${product.id}`)}
-                onAddToCart={(weight) => addToCart(product.id, weight)}
+                onAddToCart={(weight) => handleAddToCartRequest(product.id, weight)}
               />
             ))}
           </View>
         </View>
       </ScrollView>
+
+      <CuttingModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSelect={handleCuttingTypeSelect}
+      />
     </View>
   );
 }

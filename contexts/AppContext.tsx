@@ -1,7 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useMemo } from 'react';
 import { CartItem, User, Order, WalletTransaction, OrderStatus } from '@/types';
-import { MOCK_PRODUCTS } from '@/mocks/products';
 import { ProductService } from '@/services/ProductService';
 import { OrderService } from '@/services/OrderService';
 import { UserService } from '@/services/UserService';
@@ -113,34 +112,34 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return () => unsubscribe();
   }, []);
 
-  const addToCart = (productId: string, weight: number) => {
+  const addToCart = (productId: string, weight: number, cuttingType: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
     setCart((prev: CartItem[]) => {
-      const existing = prev.find((item) => item.product.id === productId && item.weight === weight);
+      const existing = prev.find((item) => item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType);
       if (existing) {
         return prev.map((item) =>
-          item.product.id === productId && item.weight === weight
+          item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1, weight }];
+      return [...prev, { product, quantity: 1, weight, cuttingType }];
     });
   };
 
-  const removeFromCart = (productId: string, weight: number) => {
+  const removeFromCart = (productId: string, weight: number, cuttingType?: string) => {
     setCart((prev: CartItem[]) => {
-      const existing = prev.find((item) => item.product.id === productId && item.weight === weight);
+      const existing = prev.find((item) => item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType);
       if (!existing) return prev;
 
       if (existing.quantity === 1) {
-        return prev.filter((item) => !(item.product.id === productId && item.weight === weight));
+        return prev.filter((item) => !(item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType));
       }
 
       return prev.map((item) =>
-        item.product.id === productId && item.weight === weight
+        item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType
           ? { ...item, quantity: item.quantity - 1 }
           : item
       );
@@ -184,7 +183,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
           name: item.product.name,
           quantity: item.quantity,
           weight: item.weight,
-          price: item.product.current_price
+          price: item.product.current_price,
+          cuttingType: item.cuttingType
         })),
         total_amount: subtotal,
         discount,
@@ -202,7 +202,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
           name: item.product.name,
           quantity: item.quantity,
           weight: item.weight,
-          price: item.product.current_price
+          price: item.product.current_price,
+          cuttingType: item.cuttingType
         })),
         total_amount: subtotal,
         discount,

@@ -25,6 +25,7 @@ export interface CartItem {
     product: Product;
     quantity: number;
     weight: number;
+    cuttingType?: string;
 }
 
 export interface WalletTransaction {
@@ -44,6 +45,7 @@ export interface OrderItem {
     quantity: number;
     weight: number;
     price: number;
+    cuttingType?: string;
 }
 
 export interface Order {
