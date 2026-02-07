@@ -19,7 +19,7 @@ import CuttingModal from '@/components/CuttingModal';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { products, addToCart, cartItemCount } = useApp();
+  const { products, addToCart, removeFromCart, cart, cartItemCount, cartTotal } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const tickerPosition = useRef(new Animated.Value(0)).current;
 
@@ -56,12 +56,28 @@ export default function HomeScreen() {
     setModalVisible(true);
   };
 
+  const handleRemoveFromCart = (productId: string, weight: number) => {
+    // Find a cart item with this product and weight to remove
+    const itemToRemove = cart.find(
+      (item) => item.product.id === productId && item.weight === weight
+    );
+    if (itemToRemove) {
+      removeFromCart(productId, weight, itemToRemove.cuttingType);
+    }
+  };
+
   const handleCuttingTypeSelect = (cuttingType: string) => {
     if (selectedProduct) {
       addToCart(selectedProduct.id, selectedProduct.weight, cuttingType);
       setModalVisible(false);
       setSelectedProduct(null);
     }
+  };
+
+  const getProductQuantityInCart = (productId: string, weight: number) => {
+    return cart
+      .filter((item) => item.product.id === productId && item.weight === weight)
+      .reduce((sum, item) => sum + item.quantity, 0);
   };
 
   return (
@@ -94,7 +110,11 @@ export default function HomeScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.tickerContainer}>
           <Text style={styles.tickerTitle}>Live Prices</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -113,6 +133,8 @@ export default function HomeScreen() {
                 product={product}
                 onPress={() => router.push(`/product/${product.id}`)}
                 onAddToCart={(weight) => handleAddToCartRequest(product.id, weight)}
+                onRemoveFromCart={(weight) => handleRemoveFromCart(product.id, weight)}
+                quantityInCart={(weight) => getProductQuantityInCart(product.id, weight)}
               />
             ))}
           </View>
@@ -124,6 +146,23 @@ export default function HomeScreen() {
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
       />
+
+      {cartItemCount > 0 && (
+        <TouchableOpacity
+          style={styles.viewCartBanner}
+          onPress={() => router.push('/cart')}
+          activeOpacity={0.9}
+        >
+          <View>
+            <Text style={styles.viewCartText}>{cartItemCount} Items | ₹{cartTotal}</Text>
+            <Text style={[styles.viewCartText, { fontSize: 12, marginTop: 4, opacity: 0.9 }]}>Extra charges may apply</Text>
+          </View>
+          <View style={styles.viewCartButton}>
+            <Text style={styles.viewCartButtonText}>View Cart</Text>
+            <ShoppingCart size={20} color={Colors.white} />
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -160,12 +199,17 @@ function ProductCard({
   product,
   onPress,
   onAddToCart,
+  onRemoveFromCart,
+  quantityInCart,
 }: {
   product: Product;
   onPress: () => void;
   onAddToCart: (weight: number) => void;
+  onRemoveFromCart: (weight: number) => void;
+  quantityInCart: (weight: number) => number;
 }) {
   const [selectedWeight, setSelectedWeight] = useState(1);
+  const quantity = quantityInCart(selectedWeight);
 
   const priceColor =
     product.price_direction === 'up'
@@ -211,12 +255,31 @@ function ProductCard({
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => onAddToCart(selectedWeight)}
-        >
-          <Text style={styles.addButtonText}>ADD</Text>
-        </TouchableOpacity>
+
+        {quantity === 0 ? (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => onAddToCart(selectedWeight)}
+          >
+            <Text style={styles.addButtonText}>ADD</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.quantityControl}>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => onRemoveFromCart(selectedWeight)}
+            >
+              <Text style={styles.quantityButtonText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{quantity}</Text>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => onAddToCart(selectedWeight)}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -282,6 +345,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: Colors.cream,
+  },
+  scrollViewContent: {
+    paddingBottom: 100, // Space for the bottom banner
   },
   promoBanner: {
     backgroundColor: Colors.orange,
@@ -444,5 +510,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold' as const,
     color: Colors.white,
+  },
+  quantityControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.deepTeal,
+    borderRadius: 16,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  quantityButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+  },
+  quantityButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: Colors.deepTeal,
+  },
+  quantityText: {
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+    color: Colors.white,
+    marginHorizontal: 12,
+  },
+  viewCartBanner: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: Colors.orange,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  viewCartText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+  },
+  viewCartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewCartButtonText: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: 'bold' as const,
   },
 });

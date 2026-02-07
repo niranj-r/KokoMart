@@ -22,21 +22,35 @@ export default function SignupScreen() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [address, setAddress] = useState('');
+    // Split Address Fields
+    const [houseDetails, setHouseDetails] = useState('');
+    const [landmark, setLandmark] = useState('');
+    const [place, setPlace] = useState('');
+    const [city, setCity] = useState('');
+    const [state, setState] = useState('Kerala'); // Default state
+    const [pincode, setPincode] = useState('');
+
+    // const [address, setAddress] = useState(''); // Removed simple address state
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSignup = async () => {
-        if (!name || !email || !password || !phone || !address) return;
+        if (!name || !email || !password || !phone || !houseDetails || !landmark || !place || !city || !pincode) {
+            // Basic validation
+            return;
+        }
+
         if (password !== confirmPassword) {
-            // Can add Alert here if needed, or rely on UI feedback
             return;
         }
 
         setIsLoading(true);
+        // Combine address fields
+        const formattedAddress = `${houseDetails}, ${landmark}, ${place}, ${city}, ${state} - ${pincode}`;
+
         try {
-            await signUp(email, password, name, phone, address);
+            await signUp(email, password, name, phone, formattedAddress);
             router.replace('/(tabs)');
         } catch (e) {
             // Error handled in AuthContext
@@ -83,16 +97,73 @@ export default function SignupScreen() {
                             />
                         </View>
 
+                        {/* Split Address Inputs */}
+                        <Text style={styles.sectionHeader}>Address Details</Text>
+
                         <View style={styles.inputContainer}>
                             <MapPin size={20} color={Colors.priceNeutral} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Address"
+                                placeholder="House No. & Name"
                                 placeholderTextColor={Colors.priceNeutral}
-                                value={address}
-                                onChangeText={setAddress}
-                                multiline
+                                value={houseDetails}
+                                onChangeText={setHouseDetails}
                             />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <MapPin size={20} color={Colors.priceNeutral} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Landmark"
+                                placeholderTextColor={Colors.priceNeutral}
+                                value={landmark}
+                                onChangeText={setLandmark}
+                            />
+                        </View>
+
+                        <View style={styles.rowContainer}>
+                            <View style={[styles.inputContainer, { flex: 1 }]}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Place/Area"
+                                    placeholderTextColor={Colors.priceNeutral}
+                                    value={place}
+                                    onChangeText={setPlace}
+                                />
+                            </View>
+                            <View style={[styles.inputContainer, { flex: 1 }]}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="City"
+                                    placeholderTextColor={Colors.priceNeutral}
+                                    value={city}
+                                    onChangeText={setCity}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.rowContainer}>
+                            <View style={[styles.inputContainer, { flex: 1 }]}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="State"
+                                    placeholderTextColor={Colors.priceNeutral}
+                                    value={state}
+                                    onChangeText={setState}
+                                />
+                            </View>
+                            <View style={[styles.inputContainer, { flex: 1 }]}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Pincode"
+                                    placeholderTextColor={Colors.priceNeutral}
+                                    value={pincode}
+                                    onChangeText={setPincode}
+                                    keyboardType="numeric"
+                                    maxLength={6}
+                                />
+                            </View>
                         </View>
 
                         <View style={styles.inputContainer}>
@@ -283,5 +354,16 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         color: Colors.orange,
+    },
+    rowContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    sectionHeader: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.charcoal,
+        marginTop: 8,
+        marginBottom: 4,
     },
 });

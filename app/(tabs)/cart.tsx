@@ -51,7 +51,11 @@ export default function CartScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
         {!user.is_first_order_completed && (
           <View style={styles.discountBanner}>
             <Text style={styles.discountText}>🎉 First Order 10% OFF Applied!</Text>
@@ -159,6 +163,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingTop: 24,
+    paddingBottom: 32,
   },
   emptyContainer: {
     flex: 1,
