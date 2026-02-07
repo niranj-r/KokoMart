@@ -9,6 +9,23 @@ import { useAuth } from './AuthContext';
 export const [AppProvider, useApp] = createContextHook(() => {
   const { user: authUser } = useAuth();
 
+  const MOCK_PRODUCTS = [
+    {
+      id: "p1",
+      name: "Whole Chicken",
+      category: "chicken",
+      current_price: 250,
+      description: "Fresh whole chicken, skinless",
+      image: "https://example.com/chicken.jpg",
+      price_direction: "neutral" as const,
+      price_change_percentage: 0,
+      stock: 100,
+      previous_price: 250,
+      availability: "in_stock",
+    },
+    // Add more if needed
+  ];
+
   const [user, setUser] = useState<User>({
     id: '1',
     name: 'Guest User',
@@ -214,7 +231,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         created_at: Date.now(),
       };
 
-      setOrders((prev: Order[]) => [newOrder, ...prev]);
+      // setOrders((prev: Order[]) => [newOrder, ...prev]); // Subscription handles this!
 
       if (!user.is_first_order_completed) {
         setUser((prev: User) => ({ ...prev, is_first_order_completed: true }));
