@@ -1,4 +1,4 @@
-import { View, Text, FlatList, StyleSheet, Linking, Alert, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Linking, Alert, TouchableOpacity, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { auth } from '../config/firebaseConfig';
@@ -7,9 +7,11 @@ import { subscribeToOrders, updateOrderStatus } from '../services/OrderService';
 import { Order } from '../types';
 import Colors from '../constants/colors';
 import { MapPin, CheckCircle, LogOut, Package } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Orders() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -64,6 +66,24 @@ export default function Orders() {
 
             <View style={styles.divider} />
 
+            <View style={styles.itemsContainer}>
+                {item.items.map((orderItem, index) => (
+                    <View key={index} style={styles.itemRow}>
+                        <View style={styles.itemInfo}>
+                            <Text style={styles.itemName}>
+                                {orderItem.name} <Text style={styles.itemQuantity}>x{orderItem.quantity}</Text>
+                            </Text>
+                            <Text style={styles.itemDetails}>
+                                {orderItem.weight}kg • {orderItem.cuttingType || 'No cutting pref'}
+                            </Text>
+                        </View>
+                        <Text style={styles.itemPrice}>₹{orderItem.price * orderItem.quantity}</Text>
+                    </View>
+                ))}
+            </View>
+
+            <View style={styles.divider} />
+
             <View style={styles.row}>
                 <MapPin size={18} color={Colors.deepTeal} style={{ marginTop: 2 }} />
                 <Text style={styles.address}>{item.address || 'No address provided'}</Text>
@@ -97,7 +117,7 @@ export default function Orders() {
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
             <StatusBar barStyle="light-content" backgroundColor={Colors.deepTeal} />
             <View style={styles.header}>
                 <View>
@@ -220,6 +240,39 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: 'rgba(0,0,0,0.05)',
         marginBottom: 12,
+        marginTop: 8,
+    },
+    itemsContainer: {
+        marginBottom: 12,
+    },
+    itemRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    itemInfo: {
+        flex: 1,
+    },
+    itemName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: Colors.charcoal,
+    },
+    itemQuantity: {
+        color: Colors.deepTeal,
+        fontWeight: 'bold',
+    },
+    itemDetails: {
+        fontSize: 13,
+        color: Colors.charcoal,
+        marginTop: 2,
+        opacity: 0.7,
+    },
+    itemPrice: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: Colors.charcoal,
     },
     row: {
         flexDirection: 'row',

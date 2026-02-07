@@ -62,7 +62,7 @@ export default function CartScreen() {
       >
         {!user.is_first_order_completed && (
           <View style={styles.discountBanner}>
-            <Text style={styles.discountText}>🎉 First Order 10% OFF Applied!</Text>
+            <Text style={styles.discountText}>First Order 10% OFF Applied!</Text>
           </View>
         )}
 

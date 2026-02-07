@@ -8,8 +8,7 @@ export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
     // You might want to filter this further based on requirements.
     const q = query(
         collection(db, 'orders'),
-        where('status', '==', 'out_for_delivery'),
-        orderBy('created_at', 'desc')
+        where('status', '==', 'out_for_delivery')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -17,6 +16,14 @@ export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
         snapshot.forEach((doc) => {
             orders.push({ id: doc.id, ...doc.data() } as Order);
         });
+
+        // Sort client-side to avoid composite index requirement
+        orders.sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateB - dateA; // Descending order
+        });
+
         callback(orders);
     });
 
