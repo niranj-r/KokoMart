@@ -73,11 +73,11 @@ export default function SignupScreen() {
                         <Text style={styles.header}>Sign Up</Text>
 
                         <View style={styles.inputContainer}>
-                            <User size={20} color={Colors.priceNeutral} />
+                            <User size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Full Name"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={name}
                                 onChangeText={setName}
                                 autoCapitalize="words"
@@ -86,11 +86,11 @@ export default function SignupScreen() {
 
 
                         <View style={styles.inputContainer}>
-                            <Phone size={20} color={Colors.priceNeutral} />
+                            <Phone size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Phone Number"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={phone}
                                 onChangeText={setPhone}
                                 keyboardType="phone-pad"
@@ -101,22 +101,22 @@ export default function SignupScreen() {
                         <Text style={styles.sectionHeader}>Address Details</Text>
 
                         <View style={styles.inputContainer}>
-                            <MapPin size={20} color={Colors.priceNeutral} />
+                            <MapPin size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="House No. & Name"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={houseDetails}
                                 onChangeText={setHouseDetails}
                             />
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <MapPin size={20} color={Colors.priceNeutral} />
+                            <MapPin size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Landmark"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={landmark}
                                 onChangeText={setLandmark}
                             />
@@ -127,7 +127,7 @@ export default function SignupScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Place/Area"
-                                    placeholderTextColor={Colors.priceNeutral}
+                                    placeholderTextColor={Colors.extrared}
                                     value={place}
                                     onChangeText={setPlace}
                                 />
@@ -136,7 +136,7 @@ export default function SignupScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="City"
-                                    placeholderTextColor={Colors.priceNeutral}
+                                    placeholderTextColor={Colors.extrared}
                                     value={city}
                                     onChangeText={setCity}
                                 />
@@ -148,7 +148,7 @@ export default function SignupScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="State"
-                                    placeholderTextColor={Colors.priceNeutral}
+                                    placeholderTextColor={Colors.extrared}
                                     value={state}
                                     onChangeText={setState}
                                 />
@@ -157,7 +157,7 @@ export default function SignupScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Pincode"
-                                    placeholderTextColor={Colors.priceNeutral}
+                                    placeholderTextColor={Colors.extrared}
                                     value={pincode}
                                     onChangeText={setPincode}
                                     keyboardType="numeric"
@@ -167,11 +167,11 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Mail size={20} color={Colors.priceNeutral} />
+                            <Mail size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Email Address"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
@@ -180,11 +180,11 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Lock size={20} color={Colors.priceNeutral} />
+                            <Lock size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Password"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
@@ -192,11 +192,11 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Lock size={20} color={Colors.priceNeutral} />
+                            <Lock size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Confirm Password"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     },
     dividerText: {
         fontSize: 14,
-        color: Colors.priceNeutral,
+        color: Colors.extrared,
         fontWeight: 'bold',
     },
     socialButtons: {
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: Colors.priceNeutral,
+        color: Colors.extrared,
     },
     linkText: {
         fontSize: 14,

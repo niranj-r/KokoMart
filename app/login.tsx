@@ -48,11 +48,11 @@ export default function LoginScreen() {
                         <Text style={styles.header}>Welcome Back</Text>
 
                         <View style={styles.inputContainer}>
-                            <Mail size={20} color={Colors.priceNeutral} />
+                            <Mail size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Email Address"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
@@ -61,11 +61,11 @@ export default function LoginScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Lock size={20} color={Colors.priceNeutral} />
+                            <Lock size={20} color={Colors.extrared} />
                             <TextInput
                                 style={styles.input}
                                 placeholder="Password"
-                                placeholderTextColor={Colors.priceNeutral}
+                                placeholderTextColor={Colors.extrared}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     },
     dividerText: {
         fontSize: 14,
-        color: Colors.priceNeutral,
+        color: Colors.extrared,
         fontWeight: 'bold',
     },
     socialButtons: {
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: Colors.priceNeutral,
+        color: Colors.extrared,
     },
     linkText: {
         fontSize: 14,
