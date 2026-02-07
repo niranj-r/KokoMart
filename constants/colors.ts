@@ -8,6 +8,7 @@ export default {
   tealBlue: '#4d0808ff',
   priceUp: '#1DB954',
   priceDown: '#E63946',
-  priceNeutral: '#fde2e2ff',
+  priceNeutral: '#ffd5d5ff',
   white: '#fbfae1ff',
+  extrared: '#c70404ff',
 };

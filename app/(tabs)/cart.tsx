@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   Image,
   SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Plus, Minus, Trash2, ShoppingBag } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -16,6 +19,7 @@ import { useApp } from '@/contexts/AppContext';
 export default function CartScreen() {
   const router = useRouter();
   const { cart, addToCart, removeFromCart, cartTotal, user } = useApp();
+  const insets = useSafeAreaInsets();
 
   const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
   const finalTotal = cartTotal - firstOrderDiscount;
@@ -23,13 +27,13 @@ export default function CartScreen() {
   if (cart.length === 0) {
     return (
       <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
           <View style={styles.headerContainer}>
             <Text style={styles.headerTitle}>Cart</Text>
           </View>
-        </SafeAreaView>
+        </View>
         <View style={styles.emptyContainer}>
-          <ShoppingBag size={80} color={Colors.priceNeutral} />
+          <ShoppingBag size={80} color={Colors.extrared} />
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>Add some fresh chicken to get started</Text>
           <TouchableOpacity
@@ -45,11 +49,11 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Cart ({cart.length})</Text>
         </View>
-      </SafeAreaView>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -183,7 +187,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 16,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -244,7 +248,7 @@ const styles = StyleSheet.create({
   },
   itemWeight: {
     fontSize: 14,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
     marginBottom: 4,
   },
   itemPrice: {
@@ -345,7 +349,7 @@ const styles = StyleSheet.create({
   },
   footerLabel: {
     fontSize: 14,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
     marginBottom: 4,
   },
   footerPrice: {

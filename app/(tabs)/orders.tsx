@@ -7,7 +7,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Scissors, Box, Truck, CheckCircle, Clock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
@@ -26,17 +29,18 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: stri
 
 export default function OrdersScreen() {
   const { orders, cancelOrder } = useApp();
+  const insets = useSafeAreaInsets();
 
   if (orders.length === 0) {
     return (
       <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
           <View style={styles.headerContainer}>
             <Text style={styles.headerTitle}>Orders</Text>
           </View>
-        </SafeAreaView>
+        </View>
         <View style={styles.emptyContainer}>
-          <Package size={80} color={Colors.priceNeutral} />
+          <Package size={80} color={Colors.extrared} />
           <Text style={styles.emptyTitle}>No orders yet</Text>
           <Text style={styles.emptySubtitle}>Your orders will appear here</Text>
         </View>
@@ -46,11 +50,11 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Orders</Text>
         </View>
-      </SafeAreaView>
+      </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.ordersContainer}>
@@ -166,7 +170,7 @@ function OrderTimeline({ currentStatus }: { currentStatus: OrderStatus }) {
             >
               <Icon
                 size={16}
-                color={isCompleted ? Colors.white : Colors.priceNeutral}
+                color={isCompleted ? Colors.white : Colors.extrared}
               />
             </View>
             <Text
@@ -227,7 +231,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 16,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
     textAlign: 'center',
   },
   ordersContainer: {
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   },
   orderDate: {
     fontSize: 14,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -292,7 +296,7 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 14,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
     marginBottom: 4,
   },
   totalValue: {
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
     left: 44,
     top: 8,
     fontSize: 14,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
   },
   timelineLabelActive: {
     color: Colors.charcoal,

@@ -7,8 +7,11 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import { Coins, TrendingUp, TrendingDown, User } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Coins, TrendingUp, TrendingDown, Mail, Phone, MapPin, Edit2, ChevronLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 
@@ -19,6 +22,7 @@ import { LogOut, LogIn } from 'lucide-react-native';
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, walletHistory, updateUserProfile } = useApp();
+  const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const [isEditing, setIsEditing] = React.useState(false);
   const [editName, setEditName] = React.useState(user.name);
@@ -47,9 +51,80 @@ export default function ProfileScreen() {
     setIsEditing(false);
   };
 
+  if (isEditing) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
+          <View style={styles.editHeader}>
+            <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.backButton}>
+              <ChevronLeft size={28} color={Colors.cream} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Edit Profile</Text>
+            <View style={{ width: 28 }} />
+          </View>
+        </View>
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.editContent}>
+
+
+            <View style={styles.formGroup}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.inputField}
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Enter your name"
+                    placeholderTextColor={Colors.priceNeutral}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.inputField}
+                    value={editPhone}
+                    onChangeText={setEditPhone}
+                    keyboardType="phone-pad"
+                    placeholder="Enter phone number"
+                    placeholderTextColor={Colors.priceNeutral}
+                  />
+                  <Phone size={20} color={Colors.extrared} style={styles.inputIcon} />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Location</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.inputField}
+                    value={editAddress}
+                    onChangeText={setEditAddress}
+                    multiline
+                    placeholder="Enter your address"
+                    placeholderTextColor={Colors.priceNeutral}
+                  />
+                  <MapPin size={20} color={Colors.extrared} style={styles.inputIcon} />
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.saveActionButton} onPress={handleSaveProfile}>
+              <Text style={styles.saveActionButtonText}>SAVE CHANGES</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
           {!isGuest && (
@@ -58,55 +133,41 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </SafeAreaView>
+      </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
-          {!isEditing && (
-            <TouchableOpacity style={styles.editIcon} onPress={() => setIsEditing(true)}>
-              <Text style={styles.editText}>Edit</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.editButtonAbsolute}
+            onPress={() => setIsEditing(true)}
+          >
+            <Edit2 size={20} color={Colors.deepTeal} />
+          </TouchableOpacity>
 
-          <View style={styles.avatar}>
-            <User size={40} color={Colors.white} />
-          </View>
 
-          {isEditing ? (
-            <View style={styles.editForm}>
-              <Text style={styles.label}>Name</Text>
-              <TextInput style={styles.input} value={editName} onChangeText={setEditName} />
 
-              <Text style={styles.label}>Phone</Text>
-              <TextInput style={styles.input} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" />
+          <View style={styles.userInfoContainer}>
+            <Text style={styles.userName}>{user.name}</Text>
 
-              <Text style={styles.label}>Address</Text>
-              <TextInput style={styles.input} value={editAddress} onChangeText={setEditAddress} multiline />
-
-              <View style={styles.editButtons}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditing(false)}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.infoRow}>
+              <Mail size={16} color={Colors.extrared} />
+              <Text style={styles.infoText}>{user.email}</Text>
             </View>
-          ) : (
-            <>
-              <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
-              {user.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
-              {user.address ? <Text style={styles.userAddress}>{user.address}</Text> : null}
-            </>
-          )}
 
-          {/*<View style={styles.detailsContainer}>
-            <Text style={styles.detailText}>ID: {user.id.slice(0, 8)}...</Text>
-            <Text style={styles.detailText}>Joined: {new Date(user.created_at).toLocaleDateString()}</Text>
-            <Text style={styles.detailText}>First Order: {user.is_first_order_completed ? 'Completed' : 'Pending'}</Text>
-          </View>*/}
+            {user.phone ? (
+              <View style={styles.infoRow}>
+                <Phone size={16} color={Colors.extrared} />
+                <Text style={styles.infoText}>{user.phone}</Text>
+              </View>
+            ) : null}
 
+            {user.address ? (
+              <View style={styles.infoRow}>
+                <MapPin size={16} color={Colors.extrared} />
+                <Text style={styles.infoText}>{user.address}</Text>
+              </View>
+            ) : null}
+          </View>
 
           {isGuest && (
             <TouchableOpacity
@@ -129,9 +190,9 @@ export default function ProfileScreen() {
           <Text style={styles.walletBalance}>{user.wallet_points}</Text>
           <Text style={styles.walletSubtext}>1 Point = ₹1</Text>
           <View style={styles.walletInfo}>
-            <Text style={styles.infoText}>• Earn 1 point per kg purchased</Text>
-            <Text style={styles.infoText}>• Redeem anytime at checkout</Text>
-            <Text style={styles.infoText}>• Points credited after delivery</Text>
+            <Text style={styles.walletInfoText}>• Earn 1 point per kg purchased</Text>
+            <Text style={styles.walletInfoText}>• Redeem anytime at checkout</Text>
+            <Text style={styles.walletInfoText}>• Points credited after delivery</Text>
           </View>
         </View>
 
@@ -220,44 +281,44 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.tealBlue,
+
+  userInfoContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 10,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold' as const,
     color: Colors.charcoal,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  userEmail: {
-    fontSize: 16,
-    color: Colors.priceNeutral,
-    marginBottom: 4,
-  },
-  userPhone: {
-    fontSize: 16,
-    color: Colors.priceNeutral,
-    marginBottom: 12,
-  },
-  detailsContainer: {
-    width: '100%',
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: Colors.creamLight,
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    marginTop: 8,
-    gap: 4,
+    minWidth: 200,
+    justifyContent: 'center',
   },
-  detailText: {
-    fontSize: 12,
-    color: Colors.priceNeutral,
-    fontFamily: 'Activity', // Or system font if custom font not loaded
+  infoText: {
+    fontSize: 14,
+    color: Colors.charcoal,
+    fontWeight: '500' as const,
   },
+  editButtonAbsolute: {
+    position: 'absolute',
+    right: 20,
+    top: 20,
+    padding: 8,
+    zIndex: 1,
+    backgroundColor: Colors.creamLight,
+    borderRadius: 12,
+  },
+
   walletCard: {
     backgroundColor: Colors.orange,
     marginHorizontal: 20,
@@ -306,7 +367,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 8,
   },
-  infoText: {
+  walletInfoText: {
     fontSize: 14,
     color: Colors.white,
   },
@@ -352,7 +413,7 @@ const styles = StyleSheet.create({
   },
   transactionDate: {
     fontSize: 13,
-    color: Colors.priceNeutral,
+    color: Colors.extrared,
   },
   transactionAmount: {
     fontSize: 18,
@@ -383,67 +444,72 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  editIcon: {
-    position: 'absolute',
-    right: 20,
-    top: 20,
-    padding: 8,
+
+  editHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  editText: {
-    color: Colors.deepTeal,
-    fontWeight: 'bold',
+  backButton: {
+    padding: 4,
   },
-  editForm: {
+  editContent: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  formGroup: {
     width: '100%',
-    gap: 12,
-    marginBottom: 20,
+    gap: 20,
+    marginTop: 20,
+    marginBottom: 40,
   },
-  label: {
+  inputContainer: {
+    gap: 8,
+  },
+  inputLabel: {
     fontSize: 14,
-    color: Colors.priceNeutral,
-    fontWeight: '600',
-  },
-  input: {
-    backgroundColor: Colors.creamLight,
-    padding: 12,
-    borderRadius: 12,
-    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.charcoal,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.creamLight,
+    paddingHorizontal: 16,
+    height: 56, // Fixed height for standard inputs
   },
-  editButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  cancelButton: {
+  inputField: {
     flex: 1,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: Colors.creamLight,
-    alignItems: 'center',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: Colors.deepTeal,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
+    fontSize: 16,
     color: Colors.charcoal,
-    fontWeight: 'bold',
+    paddingVertical: 10,
   },
-  saveButtonText: {
-    color: Colors.cream,
-    fontWeight: 'bold',
+  inputIcon: {
+    marginLeft: 10,
   },
-  userAddress: {
+  saveActionButton: {
+    backgroundColor: Colors.charcoal,
+    borderRadius: 12,
+    paddingVertical: 18,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 40,
+    shadowColor: Colors.charcoal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveActionButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
     fontSize: 14,
-    color: Colors.charcoal,
-    textAlign: 'center',
-    marginBottom: 12,
-    fontStyle: 'italic',
-  }
+    letterSpacing: 1,
+  },
 });
