@@ -41,7 +41,7 @@ export default function LoginScreen() {
                 style={styles.keyboardView}
             >
                 <View style={styles.content}>
-                    <Text style={styles.logo}>KoKoMart</Text>
+                    <Text style={styles.logo}>Meat UP</Text>
                     <Text style={styles.tagline}>Fresh Chicken, Delivered.</Text>
 
                     <View style={styles.form}>

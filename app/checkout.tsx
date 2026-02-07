@@ -120,7 +120,7 @@ export default function CheckoutScreen() {
       try {
         const encoded = encodeURIComponent(addr);
         const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encoded}`, {
-          headers: { 'User-Agent': 'KokoMartApp/1.0' }
+          headers: { 'User-Agent': 'MeatUPApp/1.0' }
         });
         const data = await resp.json();
         if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
@@ -263,7 +263,7 @@ export default function CheckoutScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Clock size={20} color={Colors.orange} />
-            <Text style={styles.sectionTitle}>Estimated Delivery</Text>
+            <Text style={styles.sectionTitle}>Meat UP Safe Checkout</Text>
           </View>
 
           <View style={styles.deliveryCard}>

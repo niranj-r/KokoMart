@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "KoKoMart Chicken Delivery",
-    "slug": "kokomart-chicken-delivery",
+    "name": "Meat UP Chicken Delivery",
+    "slug": "meat-up-chicken-delivery",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

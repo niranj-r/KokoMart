@@ -1,7 +1,7 @@
 export default {
   deepTeal: '#63020cff',
   deepTealDark: '#74111B',
-  cream: '#fdfcf8ff',
+  cream: '#fdf8e4ff',
   creamLight: '#FFF1D6',
   orange: '#8f0503ff',
   charcoal: '#200f0fff',
@@ -9,6 +9,6 @@ export default {
   priceUp: '#1DB954',
   priceDown: '#E63946',
   priceNeutral: '#ffc2c2ff',
-  white: '#fbfae1ff',
+  white: '#fffeefff',
   extrared: '#c70404ff',
 };

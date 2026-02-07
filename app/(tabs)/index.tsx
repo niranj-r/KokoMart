@@ -88,7 +88,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
         <View style={styles.header}>
-          <Text style={styles.logo}>KoKoMart</Text>
+          <Text style={styles.logo}>Meat UP</Text>
           <TouchableOpacity
             style={styles.cartButton}
             onPress={() => router.push('/cart')}
@@ -440,18 +440,22 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
-    overflow: 'hidden',
+    borderRadius: 24,
     shadowColor: Colors.charcoal,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 4,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   productImage: {
     width: '100%',
     height: 200,
     backgroundColor: Colors.creamLight,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   productInfo: {
     padding: 16,
