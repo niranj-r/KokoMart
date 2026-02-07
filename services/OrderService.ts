@@ -76,5 +76,25 @@ export const OrderService = {
         }, (error) => {
             console.error("Error subscribing to user orders:", error);
         });
+    },
+
+    // Safe update for demo simulation to prevent overwriting 'cancelled' status
+    advanceDemoOrderStatus: async (orderId: string, nextStatus: any) => {
+        try {
+            const orderRef = doc(db, 'orders', orderId);
+            // Transactionless check for simplicity, but reads fresh data
+            const orderSnap = await import('firebase/firestore').then(mod => mod.getDoc(orderRef));
+
+            if (orderSnap.exists()) {
+                const currentStatus = orderSnap.data().status;
+                if (currentStatus === 'cancelled' || currentStatus === 'delivered') {
+                    console.log(`Skipping auto-update for order ${orderId} as it is ${currentStatus}`);
+                    return;
+                }
+                await updateDoc(orderRef, { status: nextStatus });
+            }
+        } catch (error) {
+            console.error("Error advancing order status:", error);
+        }
     }
 };

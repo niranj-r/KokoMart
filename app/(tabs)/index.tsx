@@ -53,11 +53,15 @@ export default function HomeScreen() {
     : products;
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<{ id: string; weight: number } | null>(null);
+  const [selectedProductData, setSelectedProductData] = useState<{ id: string; weight: number; cuttingTypes?: string[] } | null>(null);
 
-  const handleAddToCartRequest = (productId: string, weight: number) => {
-    setSelectedProduct({ id: productId, weight });
-    setModalVisible(true);
+  const handleAddToCartRequest = (product: Product, weight: number) => {
+    if (product.cutting_types && product.cutting_types.length > 0) {
+      setSelectedProductData({ id: product.id, weight, cuttingTypes: product.cutting_types });
+      setModalVisible(true);
+    } else {
+      addToCart(product.id, 1, weight);
+    }
   };
 
   const handleRemoveFromCart = (productId: string, weight: number) => {
@@ -71,10 +75,10 @@ export default function HomeScreen() {
   };
 
   const handleCuttingTypeSelect = (cuttingType: string) => {
-    if (selectedProduct) {
-      addToCart(selectedProduct.id, selectedProduct.weight, cuttingType);
+    if (selectedProductData) {
+      addToCart(selectedProductData.id, 1, selectedProductData.weight, cuttingType);
       setModalVisible(false);
-      setSelectedProduct(null);
+      setSelectedProductData(null);
     }
   };
 
@@ -137,7 +141,7 @@ export default function HomeScreen() {
                 key={product.id}
                 product={product}
                 onPress={() => router.push(`/product/${product.id}`)}
-                onAddToCart={(weight) => handleAddToCartRequest(product.id, weight)}
+                onAddToCart={(weight) => handleAddToCartRequest(product, weight)}
                 onRemoveFromCart={(weight) => handleRemoveFromCart(product.id, weight)}
                 quantityInCart={(weight) => getProductQuantityInCart(product.id, weight)}
               />
@@ -150,6 +154,7 @@ export default function HomeScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
+        options={selectedProductData?.cuttingTypes}
       />
 
       {cartItemCount > 0 && (
@@ -229,6 +234,11 @@ function ProductCard({
       <Image source={{ uri: product.image }} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{product.name}</Text>
+        {product.description && (
+          <Text style={styles.productDescription} numberOfLines={2}>
+            {product.description}
+          </Text>
+        )}
         <View style={styles.priceRow}>
           <Text style={styles.productPrice}>₹{product.current_price}/kg</Text>
           {product.price_direction !== 'neutral' && (
@@ -461,9 +471,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   productName: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.charcoal,
+    marginBottom: 4,
+  },
+  productDescription: {
+    fontSize: 12,
+    color: Colors.charcoal + '80', // semi-transparent
     marginBottom: 8,
   },
   priceRow: {

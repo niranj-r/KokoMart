@@ -329,10 +329,10 @@ export default function CheckoutScreen() {
           {/* Itemized Bill */}
           <View style={styles.billItems}>
             {cart.map((item, index) => (
-              <View key={item.product.id || index} style={styles.billRow}>
+              <View key={`${item.product.id}-${item.weight}-${item.cuttingType || ''}-${index}`} style={styles.billRow}>
                 <Text style={styles.billItemName}>
                   {item.product.name} <Text style={styles.billItemQty}>x{item.quantity}</Text>
-                  {item.product.category === 'chicken' && item.cuttingType && (
+                  {item.cuttingType && (
                     <Text style={styles.billItemMeta}> ({item.cuttingType})</Text>
                   )}
                 </Text>

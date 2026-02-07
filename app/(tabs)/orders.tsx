@@ -94,6 +94,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
         {order.items.map((item, index) => (
           <Text key={index} style={styles.itemText}>
             • {item.name} ({item.weight}kg × {item.quantity})
+            {item.cuttingType ? ` • ${item.cuttingType}` : ''}
           </Text>
         ))}
       </View>

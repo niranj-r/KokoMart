@@ -9,22 +9,6 @@ import { useAuth } from './AuthContext';
 export const [AppProvider, useApp] = createContextHook(() => {
   const { user: authUser } = useAuth();
 
-  const MOCK_PRODUCTS = [
-    {
-      id: "p1",
-      name: "Whole Chicken",
-      category: "chicken",
-      current_price: 250,
-      description: "Fresh whole chicken, skinless",
-      image: "https://example.com/chicken.jpg",
-      price_direction: "neutral" as const,
-      price_change_percentage: 0,
-      stock: 100,
-      previous_price: 250,
-      availability: "in_stock",
-    },
-    // Add more if needed
-  ];
 
   const [user, setUser] = useState<User>({
     id: '1',
@@ -43,9 +27,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   // Sync with Firebase Auth
   useEffect(() => {
-    if (authUser) {
-      // Fetch fresh profile from Firestore
-      UserService.getUser(authUser.uid).then(profile => {
+    let unsubscribeOrders: (() => void) | undefined;
+    let simulationInterval: ReturnType<typeof setInterval> | undefined;
+    let isMounted = true;
+
+    const initUser = async () => {
+      if (authUser) {
+        // Fetch fresh profile from Firestore
+        const profile = await UserService.getUser(authUser.uid);
+
+        if (!isMounted) return;
+
         if (profile) {
           setUser({
             id: profile.id,
@@ -59,67 +51,62 @@ export const [AppProvider, useApp] = createContextHook(() => {
           });
 
           // Real-time order updates
-          const unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, (userOrders) => {
-            setOrders(userOrders);
+          unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, (userOrders) => {
+            if (isMounted) {
+              setOrders(userOrders);
+            }
           });
 
           // Simulation: Advance order status every 5 minutes
           const statusFlow: OrderStatus[] = ['pending', 'confirmed', 'received', 'cutting', 'packing', 'out_for_delivery', 'delivered'];
-          const simulationInterval = setInterval(() => {
+          simulationInterval = setInterval(() => {
             console.log("Simulating order status updates...");
-            setOrders(currentOrders => { // Access latest state if needed for logic, but we act on Firestore
+            setOrders(currentOrders => {
               currentOrders.forEach(async (order) => {
                 if (order.status !== 'delivered' && order.status !== 'cancelled') {
                   const currentIndex = statusFlow.indexOf(order.status);
                   if (currentIndex !== -1 && currentIndex < statusFlow.length - 1) {
                     const nextStatus = statusFlow[currentIndex + 1];
                     try {
-                      await OrderService.updateOrderStatus(order.id, nextStatus);
-                      console.log(`Updated order ${order.id} to ${nextStatus}`);
+                      // Use safe update to check if it wasn't cancelled in the meantime
+                      await OrderService.advanceDemoOrderStatus(order.id, nextStatus);
+                      console.log(`Attempted auto-update for order ${order.id} to ${nextStatus}`);
                     } catch (e) {
                       console.error(`Failed to auto-update order ${order.id}`, e);
                     }
                   }
                 }
               });
-              return currentOrders; // State update handled by subscription
+              return currentOrders;
             });
           }, 5 * 60 * 1000); // 5 minutes
-
-          return () => {
-            unsubscribeOrders();
-            clearInterval(simulationInterval);
-          };
         }
-      });
-    } else {
-      // Reset to guest
-      setUser({
-        id: '1',
-        name: 'Guest User',
-        phone: '',
-        email: '',
-        address: '',
-        is_first_order_completed: false,
-        wallet_points: 0,
-        created_at: new Date().toISOString(),
-      });
-    }
+      } else {
+        // Reset to guest
+        setUser({
+          id: '1',
+          name: 'Guest User',
+          phone: '',
+          email: '',
+          address: '',
+          is_first_order_completed: false,
+          wallet_points: 0,
+          created_at: new Date().toISOString(),
+        });
+        setOrders([]);
+      }
+    };
+
+    initUser();
+
+    return () => {
+      isMounted = false;
+      if (unsubscribeOrders) unsubscribeOrders();
+      if (simulationInterval) clearInterval(simulationInterval);
+    };
   }, [authUser]);
 
   useEffect(() => {
-    // Initial load and seeding check
-    const initProducts = async () => {
-      let fetchedProducts = await ProductService.getAllProducts();
-
-      if (fetchedProducts.length === 0) {
-        console.log("Seeding products...");
-        for (const product of MOCK_PRODUCTS) {
-          await ProductService.seedProduct(product);
-        }
-      }
-    };
-    initProducts();
 
     // Real-time subscription
     const unsubscribe = ProductService.subscribeToProducts((updatedProducts) => {
@@ -129,7 +116,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return () => unsubscribe();
   }, []);
 
-  const addToCart = (productId: string, weight: number, cuttingType: string) => {
+  const addToCart = (productId: string, quantity: number, weight: number, cuttingType?: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
@@ -138,11 +125,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (existing) {
         return prev.map((item) =>
           item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { product, quantity: 1, weight, cuttingType }];
+      return [...prev, { product, quantity, weight, cuttingType }];
     });
   };
 
@@ -201,13 +188,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
           quantity: item.quantity,
           weight: item.weight,
           price: item.product.current_price,
-          cuttingType: item.cuttingType
+          ...(item.cuttingType ? { cuttingType: item.cuttingType } : {}),
         })),
         total_amount: subtotal,
         discount,
         wallet_used: walletUsed,
         final_amount: finalAmount,
         earned_points: earnedPoints,
+        address,
         // status and created_at are handled by the service
       });
 
@@ -229,6 +217,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         earned_points: earnedPoints,
         status: 'pending',
         created_at: Date.now(),
+        address,
       };
 
       // setOrders((prev: Order[]) => [newOrder, ...prev]); // Subscription handles this!
