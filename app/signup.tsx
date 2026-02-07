@@ -66,7 +66,7 @@ export default function SignupScreen() {
                 style={styles.keyboardView}
             >
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <Text style={styles.logo}>KoKoMart</Text>
+                    <Text style={styles.logo}>Meat UP</Text>
                     <Text style={styles.tagline}>Create Your Account</Text>
 
                     <View style={styles.form}>
