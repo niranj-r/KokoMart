@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Image,
   Animated,
-  SafeAreaView,
+
   TextInput,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, TrendingUp, TrendingDown, ShoppingCart } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -20,6 +23,7 @@ import CuttingModal from '@/components/CuttingModal';
 export default function HomeScreen() {
   const router = useRouter();
   const { products, addToCart, cartItemCount } = useApp();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const tickerPosition = useRef(new Animated.Value(0)).current;
 
@@ -66,7 +70,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
         <View style={styles.header}>
           <Text style={styles.logo}>KoKoMart</Text>
           <TouchableOpacity
@@ -92,7 +96,8 @@ export default function HomeScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
-      </SafeAreaView>
+      </View>
+
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.tickerContainer}>
@@ -124,7 +129,7 @@ export default function HomeScreen() {
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
       />
-    </View>
+    </View >
   );
 }
 

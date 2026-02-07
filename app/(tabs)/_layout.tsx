@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { Image } from "react-native";
 import { Home, ShoppingCart, Package, User } from "lucide-react-native";
 import React from "react";
 import Colors from "@/constants/colors";
@@ -25,7 +26,15 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require("../../assets/images/splash-icon.png")}
+              style={{
+                width: 24, height: 24
+              }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
       <Tabs.Screen
