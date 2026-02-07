@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, TrendingUp, TrendingDown, ShoppingCart } from 'lucide-react-native';
+import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
@@ -22,7 +22,7 @@ import CuttingModal from '@/components/CuttingModal';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { products, addToCart, cartItemCount } = useApp();
+  const { products, addToCart, cartItemCount, cart, removeFromCart, cartTotal } = useApp();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const tickerPosition = useRef(new Animated.Value(0)).current;
@@ -151,6 +151,24 @@ export default function HomeScreen() {
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
       />
+
+      {cartItemCount > 0 && (
+        <View style={styles.viewCartBanner}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 }}>
+              <ShoppingBag size={24} color={Colors.white} />
+            </View>
+            <View>
+              <Text style={styles.viewCartText}>{cartItemCount} Items</Text>
+              <Text style={[styles.viewCartText, { fontSize: 13, opacity: 0.9 }]}>₹{cartTotal.toFixed(2)}</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.viewCartButton}>
+            <Text style={styles.viewCartButtonText}>View Cart</Text>
+            <ArrowRight size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
