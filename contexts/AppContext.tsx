@@ -47,27 +47,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
             address: profile.address || '',
             is_first_order_completed: profile.is_first_order_completed,
             wallet_points: profile.wallet_points,
-            created_at: profile.created_at,
+            created_at: profile.created_at, // Already a number from firestore usually
           });
 
           // Real-time order updates
-          unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, async (userOrders) => {
+          unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, (userOrders) => {
             if (isMounted) {
               setOrders(userOrders);
-
-              // Check if any order is recently delivered to refresh points
-              // In a real app, you might want a more robust check (e.g. comparing with previous state)
-              // For now, if there is a delivered order, we re-fetch the user to get updated points
-              const hasDeliveredOrder = userOrders.some(o => o.status === 'delivered');
-              if (hasDeliveredOrder) {
-                const updatedUser = await UserService.getUser(profile.id);
-                if (updatedUser && isMounted) {
-                  setUser(prev => ({
-                    ...prev,
-                    wallet_points: updatedUser.wallet_points
-                  }));
-                }
-              }
             }
           });
 
@@ -235,22 +221,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
         note,
       };
 
-      const orderId = await OrderService.createOrder(orderPayload);
+      const result = await OrderService.createOrder(orderPayload);
 
       // Update address if it's new/changed
       if (address && address !== user.address) {
         await UserService.updateUser(user.id, { address });
+        // Optimistic update
+        setUser((prev: User) => ({ ...prev, address }));
       }
 
-      // Optimistic update for address and wallet points (deduction)
-      setUser((prev: User) => ({
-        ...prev,
-        address: address || prev.address,
-        wallet_points: Math.max(0, prev.wallet_points - walletUsed)
-      }));
-
       clearCart();
-      return orderId;
+      return result;
     } catch (e) {
       console.error("Order Failed", e);
       throw e;
