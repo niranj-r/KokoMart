@@ -1,18 +1,57 @@
 import { db } from '@/config/firebaseConfig';
-import { collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, onSnapshot, getDoc, runTransaction } from 'firebase/firestore';
 import { Order, OrderStatus } from '@/types';
 import { UserService } from './UserService';
 
 export const OrderService = {
     createOrder: async (orderData: Omit<Order, 'id' | 'created_at' | 'status'>) => {
         try {
-            const newOrder = {
-                ...orderData,
-                status: 'pending',
-                created_at: Date.now()
-            };
+            const today = new Date();
+            const yy = today.getFullYear().toString().slice(-2);
+            const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+            const dd = today.getDate().toString().padStart(2, '0');
+            const dateStr = `${dd}${mm}${yy}`; // DDMMYY
 
-            const docRef = await addDoc(collection(db, 'orders'), newOrder);
+            let display_id = '';
+            let newOrderRef: any;
+
+            await runTransaction(db, async (transaction) => {
+                const counterRef = doc(db, 'counters', 'daily_orders');
+                const counterSnap = await transaction.get(counterRef);
+
+                let currentCount = 0;
+
+                if (counterSnap.exists()) {
+                    const data = counterSnap.data();
+                    if (data.date === dateStr) {
+                        currentCount = data.count || 0;
+                    }
+                    // If date doesn't match, currentCount stays 0 (reset)
+                }
+
+                currentCount++;
+                const countStr = currentCount.toString().padStart(2, '0');
+                display_id = `MU-${dateStr}-${countStr}`;
+
+                transaction.set(counterRef, {
+                    date: dateStr,
+                    count: currentCount
+                });
+
+                const newOrder = {
+                    ...orderData,
+                    display_id,
+                    status: 'pending',
+                    created_at: Date.now()
+                };
+
+                // Create a ref for the new order and set it within transaction
+                // Note: addDoc cannot be used directly in transaction, so we use doc() to generate ID and set()
+                newOrderRef = doc(collection(db, 'orders'));
+                transaction.set(newOrderRef, newOrder);
+            });
+
+            // Post-transaction updates (points etc) - these are best effort after order creation
 
             // Deduct wallet points if used
             if (orderData.wallet_used > 0) {
@@ -36,7 +75,7 @@ export const OrderService = {
                 await UserService.updateUser(orderData.user_id, { is_first_order_completed: true });
             }
 
-            return docRef.id;
+            return { id: newOrderRef.id, display_id };
         } catch (error) {
             console.error("Error creating order:", error);
             throw error;

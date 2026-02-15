@@ -119,7 +119,7 @@ export default function HomeScreen() {
       {/* 1. Custom Header with Search */}
       <View style={[styles.headerBg, { paddingTop: insets.top }]}>
         <View style={styles.headerTopRow}>
-          <Text style={styles.logo}>Meat UP</Text>
+          <Text style={styles.logo}>Meat Up</Text>
           <TouchableOpacity
             style={styles.cartBtn}
             onPress={() => router.push('/cart')}

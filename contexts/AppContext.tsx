@@ -227,6 +227,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
       clearCart();
       return result;
+      return result;
     } catch (e) {
       console.error("Order Failed", e);
       throw e;

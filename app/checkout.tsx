@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { calculateDistance, calculateDeliveryTime, STORE_LOCATION } from '@/utils/locationUtils';
+import OrderSuccessModal from '@/components/OrderSuccessModal';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -28,6 +29,8 @@ export default function CheckoutScreen() {
   const [address, setAddress] = useState(user.address || '');
   const [useWalletPoints, setUseWalletPoints] = useState(false);
   const [note, setNote] = useState('');
+  const [orderSuccessVisible, setOrderSuccessVisible] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState('');
 
   const [locationLoading, setLocationLoading] = useState(false);
   const [deliveryDistance, setDeliveryDistance] = useState<number | null>(null);
@@ -189,20 +192,25 @@ export default function CheckoutScreen() {
       : 'Standard Delivery';
 
     try {
-      const orderId = await placeOrder(address, slotString, walletDeduction, note);
-      Alert.alert(
-        'Order Placed! 🎉',
-        `Your order #${orderId.slice(-6)} has been placed successfully`,
-        [
-          {
-            text: 'View Orders',
-            onPress: () => router.replace('/orders'),
-          },
-        ]
-      );
+      const result = await placeOrder(address, slotString, walletDeduction, note);
+      if (!result) throw new Error("Order placement failed");
+
+      const { display_id } = result;
+      setPlacedOrderId(display_id);
+      setOrderSuccessVisible(true);
     } catch (error) {
       Alert.alert('Error', 'Failed to place order. Please try again.');
     }
+  };
+
+  const handleTrackOrder = () => {
+    setOrderSuccessVisible(false);
+    router.replace('/orders');
+  };
+
+  const handleContinueShopping = () => {
+    setOrderSuccessVisible(false);
+    router.replace('/');
   };
 
   return (
@@ -325,8 +333,9 @@ export default function CheckoutScreen() {
                   </Text>
                 </View>
                 <Switch
-                  trackColor={{ false: "#E0E0E0", true: Colors.deepTeal }}
-                  thumbColor={Colors.cream}
+                  trackColor={{ false: Colors.cream.substring(0, 7), true: Colors.deepTeal.substring(0, 7) }}
+                  thumbColor={useWalletPoints ? Colors.cream.substring(0, 7) : Colors.deepTeal.substring(0, 7)}
+                  ios_backgroundColor={Colors.cream.substring(0, 7)}
                   onValueChange={setUseWalletPoints}
                   value={useWalletPoints}
                 />
@@ -405,6 +414,13 @@ export default function CheckoutScreen() {
           </View>
         </TouchableOpacity>
       </View>
+
+      <OrderSuccessModal
+        visible={orderSuccessVisible}
+        orderId={placedOrderId}
+        onTrackOrder={handleTrackOrder}
+        onContinueShopping={handleContinueShopping}
+      />
     </View>
   );
 }
