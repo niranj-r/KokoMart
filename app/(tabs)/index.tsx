@@ -134,7 +134,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.searchBarContainer}>
-          <Search size={20} color={Colors.deepTeal.substring(0, 7) + '90'} />
+          <Search size={18} color={Colors.deepTeal.substring(0, 7) + '90'} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for fresh cuts..."
@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     marginHorizontal: 24,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 18,
+    paddingVertical: 6,
+    borderRadius: 16,
     gap: 10,
     shadowColor: Colors.deepTeal,
     shadowOffset: { width: 0, height: 4 },
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.deepTeal,
     fontWeight: '500',
   },
