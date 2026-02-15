@@ -17,7 +17,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     email: '',
     is_first_order_completed: false,
     wallet_points: 150,
-    created_at: new Date().toISOString(),
+    created_at: Date.now(),
   });
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -47,7 +47,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
             address: profile.address || '',
             is_first_order_completed: profile.is_first_order_completed,
             wallet_points: profile.wallet_points,
-            created_at: new Date(profile.created_at).toISOString(),
+            created_at: profile.created_at,
           });
 
           // Real-time order updates
@@ -105,7 +105,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           address: '',
           is_first_order_completed: false,
           wallet_points: 0,
-          created_at: new Date().toISOString(),
+          created_at: Date.now(),
         });
         setOrders([]);
       }
