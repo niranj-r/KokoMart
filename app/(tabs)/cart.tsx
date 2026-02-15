@@ -103,7 +103,7 @@ export default function CartScreen() {
                 <Text style={styles.quantityText}>{item.quantity}</Text>
                 <TouchableOpacity
                   style={styles.controlBtn}
-                  onPress={() => addToCart(item.product.id, item.weight, item.cuttingType!)}
+                  onPress={() => addToCart(item.product.id, 1, item.weight, item.cuttingType!)}
                 >
                   <Plus size={16} color={Colors.charcoal} />
                 </TouchableOpacity>
