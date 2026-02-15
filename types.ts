@@ -75,4 +75,5 @@ export interface Order {
     address: string;
     delivery_slot?: string;
     note?: string;
+    display_id?: string;
 }

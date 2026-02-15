@@ -118,7 +118,7 @@ export default function ProductDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Select Weight</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weightOptions}>
-              {[1, 1.5, 2, 2.5, 3].map((weight) => (
+              {[1, 1.5, 2, 2.5, 3, 5].map((weight) => (
                 <TouchableOpacity
                   key={weight}
                   style={[
@@ -150,14 +150,14 @@ export default function ProductDetailScreen() {
                   onPress={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={quantity === 1}
                 >
-                  <Minus size={20} color={quantity === 1 ? Colors.priceNeutral : Colors.charcoal} />
+                  <Minus size={18} color={quantity === 1 ? '#AAA' : Colors.white} />
                 </TouchableOpacity>
                 <Text style={styles.quantityText}>{quantity}</Text>
                 <TouchableOpacity
                   style={styles.quantityButton}
                   onPress={() => setQuantity(quantity + 1)}
                 >
-                  <Plus size={20} color={Colors.charcoal} />
+                  <Plus size={18} color={Colors.white} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.tealBlue,
     position: 'absolute',
     bottom: 6,
   },
@@ -409,29 +409,42 @@ const styles = StyleSheet.create({
   quantitySelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'space-between',
     backgroundColor: Colors.white,
     padding: 6,
     borderRadius: 16,
-    borderWidth: 1, // subtle border
-    borderColor: '#EFEFEF',
+    borderWidth: 1.5,
+    borderColor: Colors.tealBlue.substring(0, 7) + '20', // Light teal border
+    shadowColor: Colors.charcoal,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    maxWidth: 160,
   },
   quantityButton: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.tealBlue,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.tealBlue,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   quantityButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#F0F0F0',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   quantityText: {
     fontSize: 20,
-    fontWeight: 'bold' as const,
-    color: Colors.charcoal,
-    minWidth: 30,
+    fontWeight: '800' as const,
+    color: Colors.tealBlue,
+    minWidth: 32,
     textAlign: 'center',
   },
   rewardCard: {

@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 30, // Extra padding for rounded corners/iPhone home bar
+    paddingBottom: 16, // Extra padding for rounded corners/iPhone home bar
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     shadowColor: '#000',

@@ -10,12 +10,14 @@ import {
   Platform,
   StatusBar,
   Image,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Scissors, Box, Truck, CheckCircle, Clock, ChevronRight } from 'lucide-react-native';
+import { Package, Scissors, Box, Truck, CheckCircle, Clock, ChevronRight, Headset } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Order, OrderStatus } from '@/types';
+import SupportChatModal from '@/components/SupportChatModal';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: string; bgColor: string }> = {
   pending: { label: 'Order Pending', icon: Clock, color: Colors.orange, bgColor: '#FFF4E6' },
@@ -31,12 +33,20 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: stri
 export default function OrdersScreen() {
   const { orders, cancelOrder } = useApp();
   const insets = useSafeAreaInsets();
+  const [chatVisible, setChatVisible] = React.useState(false);
+
+  const handleSupportPress = () => {
+    setChatVisible(true);
+  };
 
   // Custom Header
   const renderHeader = () => (
     <View style={[styles.headerBg, { paddingTop: insets.top }]}>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>My Orders</Text>
+        <TouchableOpacity onPress={handleSupportPress} style={styles.supportButton}>
+          <Headset size={24} color={Colors.cream} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -73,6 +83,11 @@ export default function OrdersScreen() {
         </View>
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <SupportChatModal
+        visible={chatVisible}
+        onClose={() => setChatVisible(false)}
+      />
     </View>
   );
 }
@@ -86,7 +101,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
       {/* Card Header */}
       <View style={styles.cardHeader}>
         <View>
-          <Text style={styles.orderId}>ORDER #{order.id.slice(-6).toUpperCase()}</Text>
+          <Text style={styles.orderId}>{order.display_id || `ORDER #${order.id.slice(-6).toUpperCase()}`}</Text>
           <Text style={styles.orderDate}>
             {new Date(order.created_at).toLocaleDateString('en-IN', {
               day: 'numeric',
@@ -246,7 +261,7 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     height: 60,
   },
@@ -477,5 +492,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: Colors.orange,
+  },
+  supportButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
