@@ -240,9 +240,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // Update address if it's new/changed
       if (address && address !== user.address) {
         await UserService.updateUser(user.id, { address });
-        // Optimistic update
-        setUser((prev: User) => ({ ...prev, address }));
       }
+
+      // Optimistic update for address and wallet points (deduction)
+      setUser((prev: User) => ({
+        ...prev,
+        address: address || prev.address,
+        wallet_points: Math.max(0, prev.wallet_points - walletUsed)
+      }));
 
       clearCart();
       return orderId;
