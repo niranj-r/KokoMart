@@ -51,9 +51,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
           });
 
           // Real-time order updates
-          unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, (userOrders) => {
+          unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, async (userOrders) => {
             if (isMounted) {
               setOrders(userOrders);
+
+              // Check if any order is recently delivered to refresh points
+              // In a real app, you might want a more robust check (e.g. comparing with previous state)
+              // For now, if there is a delivered order, we re-fetch the user to get updated points
+              const hasDeliveredOrder = userOrders.some(o => o.status === 'delivered');
+              if (hasDeliveredOrder) {
+                const updatedUser = await UserService.getUser(profile.id);
+                if (updatedUser && isMounted) {
+                  setUser(prev => ({
+                    ...prev,
+                    wallet_points: updatedUser.wallet_points
+                  }));
+                }
+              }
             }
           });
 
