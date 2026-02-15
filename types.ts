@@ -10,6 +10,15 @@ export interface Product {
     availability: boolean;
     description?: string;
     cutting_types?: string[];
+    unit: string;
+    increment: number;
+    price_quantity?: number; // For "30 for 15 pieces" logic. Defaults to 1 if undefined.
+    variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+    name: string;
+    price: number;
 }
 
 export interface UserProfile {
@@ -22,6 +31,8 @@ export interface UserProfile {
     created_at: number; // Timestamp
     address?: string;
 }
+
+export type User = UserProfile;
 
 export interface CartItem {
     product: Product;
@@ -63,4 +74,5 @@ export interface Order {
     created_at: number;
     address: string;
     delivery_slot?: string;
+    note?: string;
 }

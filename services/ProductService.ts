@@ -1,5 +1,5 @@
 import { db } from '@/config/firebaseConfig';
-import { collection, getDocs, doc, getDoc, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Product } from '@/types';
 
 export const ProductService = {
@@ -44,6 +44,16 @@ export const ProductService = {
             await addDoc(collection(db, 'products'), product);
         } catch (error) {
             console.error("Error seeding product:", error);
+        }
+    },
+
+    updateProduct: async (id: string, updates: Partial<Product>) => {
+        try {
+            const docRef = doc(db, 'products', id);
+            await updateDoc(docRef, updates);
+            console.log(`Product ${id} updated successfully`);
+        } catch (error) {
+            console.error("Error updating product:", error);
         }
     }
 };

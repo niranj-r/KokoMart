@@ -7,18 +7,20 @@ import {
   TouchableOpacity,
   Image,
   Animated,
-
   TextInput,
   Platform,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag } from 'lucide-react-native';
+import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag, Plus, Minus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
 import CuttingModal from '@/components/CuttingModal';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -27,8 +29,7 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const tickerPosition = useRef(new Animated.Value(0)).current;
 
-  const topProducts = products.slice(0, 3);
-
+  // Ticker Animation
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
@@ -48,15 +49,41 @@ export default function HomeScreen() {
     return () => animation.stop();
   }, [tickerPosition]);
 
+  // Data Fix for Eggs (Preserved from previous version)
+  useEffect(() => {
+    const eggProduct = products.find(p => p.name.toLowerCase().includes('egg'));
+    if (eggProduct) {
+      const needsUpdate = !eggProduct.price_quantity || eggProduct.price_quantity === 1 || !eggProduct.variants;
+      if (needsUpdate) {
+        import('@/services/ProductService').then(({ ProductService }) => {
+          ProductService.updateProduct(eggProduct.id, {
+            price_quantity: 15,
+            unit: 'pc',
+            variants: [
+              { name: 'White Egg', price: 30 },
+              { name: 'Brown Egg', price: 40 }
+            ]
+          });
+        });
+      }
+    }
+  }, [products]);
+
   const filteredProducts = searchQuery
     ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : products;
 
+  const topProducts = products.slice(0, 5); // Show top 5 in ticker
+
+  // Modal State
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedProductData, setSelectedProductData] = useState<{ id: string; weight: number; cuttingTypes?: string[] } | null>(null);
+  const [selectedProductData, setSelectedProductData] = useState<{ id: string; weight: number; cuttingTypes?: string[]; variants?: any[] } | null>(null);
 
   const handleAddToCartRequest = (product: Product, weight: number) => {
-    if (product.cutting_types && product.cutting_types.length > 0) {
+    if (product.variants && product.variants.length > 0) {
+      setSelectedProductData({ id: product.id, weight, variants: product.variants });
+      setModalVisible(true);
+    } else if (product.cutting_types && product.cutting_types.length > 0) {
       setSelectedProductData({ id: product.id, weight, cuttingTypes: product.cutting_types });
       setModalVisible(true);
     } else {
@@ -65,7 +92,6 @@ export default function HomeScreen() {
   };
 
   const handleRemoveFromCart = (productId: string, weight: number) => {
-    // Find a cart item with this product and weight to remove
     const itemToRemove = cart.find(
       (item) => item.product.id === productId && item.weight === weight
     );
@@ -90,64 +116,75 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
-        <View style={styles.header}>
+      {/* 1. Custom Header with Search */}
+      <View style={[styles.headerBg, { paddingTop: insets.top }]}>
+        <View style={styles.headerTopRow}>
           <Text style={styles.logo}>Meat UP</Text>
           <TouchableOpacity
-            style={styles.cartButton}
+            style={styles.cartBtn}
             onPress={() => router.push('/cart')}
           >
-            <ShoppingCart size={24} color={Colors.white} />
+            <ShoppingCart size={24} color={Colors.cream} />
             {cartItemCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartItemCount}</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.priceNeutral} />
+        <View style={styles.searchBarContainer}>
+          <Search size={20} color={Colors.deepTeal.substring(0, 7) + '90'} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for chicken..."
-            placeholderTextColor={Colors.priceNeutral}
+            placeholder="Search for fresh cuts..."
+            placeholderTextColor={Colors.deepTeal.substring(0, 7) + '70'}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
       </View>
 
-
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.tickerContainer}>
-          <Text style={styles.tickerTitle}>Live Prices</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {topProducts.map((product) => (
-              <TickerItem key={product.id} product={product} />
-            ))}
-          </ScrollView>
-        </View>
 
+        {/* 2. Live Ticker */}
+        {topProducts.length > 0 && (
+          <View style={styles.tickerSection}>
+            <View style={styles.tickerHeader}>
+              <View style={styles.liveDot} />
+              <Text style={styles.tickerTitle}>LIVE MARKET</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+              {topProducts.map(product => (
+                <TickerItem key={product.id} product={product} />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* 3. Products Grid */}
         <View style={styles.productsSection}>
           <Text style={styles.sectionTitle}>Fresh Products</Text>
-          <View style={styles.productsGrid}>
-            {filteredProducts.map((product) => (
+          <View style={styles.grid}>
+            {filteredProducts.map(product => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onPress={() => router.push(`/product/${product.id}`)}
-                onAddToCart={(weight) => handleAddToCartRequest(product, weight)}
-                onRemoveFromCart={(weight) => handleRemoveFromCart(product.id, weight)}
-                quantityInCart={(weight) => getProductQuantityInCart(product.id, weight)}
+                onAddToCart={(w) => handleAddToCartRequest(product, w)}
+                onRemoveFromCart={(w) => handleRemoveFromCart(product.id, w)}
+                quantityInCart={(w) => getProductQuantityInCart(product.id, w)}
               />
             ))}
           </View>
         </View>
+
+        {/* Space for floating cart */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       <CuttingModal
@@ -155,22 +192,30 @@ export default function HomeScreen() {
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
         options={selectedProductData?.cuttingTypes}
+        variants={selectedProductData?.variants}
+        title={selectedProductData?.variants ? "Select Type" : "Select Cutting Type"}
       />
 
+      {/* 4. Floating Cart Banner */}
       {cartItemCount > 0 && (
-        <View style={styles.viewCartBanner}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 }}>
-              <ShoppingBag size={24} color={Colors.white} />
+        <View style={styles.floatCartContainer}>
+          <TouchableOpacity style={styles.floatCartBtn} onPress={() => router.push('/cart')}>
+            <View style={styles.floatCartLeft}>
+              <View style={styles.floatIconBg}>
+                <ShoppingBag size={20} color={Colors.deepTeal} />
+                <View style={styles.floatBadge}>
+                  <Text style={styles.floatBadgeText}>{cartItemCount}</Text>
+                </View>
+              </View>
+              <View>
+                <Text style={styles.floatCartLabel}>Total</Text>
+                <Text style={styles.floatCartValue}>₹{cartTotal.toFixed(2)}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.viewCartText}>{cartItemCount} Items</Text>
-              <Text style={[styles.viewCartText, { fontSize: 13, opacity: 0.9 }]}>₹{cartTotal.toFixed(2)}</Text>
+            <View style={styles.floatCartRight}>
+              <Text style={styles.viewCartText}>View Cart</Text>
+              <ArrowRight size={18} color={Colors.white} />
             </View>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/cart')} style={styles.viewCartButton}>
-            <Text style={styles.viewCartButtonText}>View Cart</Text>
-            <ArrowRight size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
       )}
@@ -178,27 +223,24 @@ export default function HomeScreen() {
   );
 }
 
-function TickerItem({ product }: { product: Product }) {
-  const priceColor =
-    product.price_direction === 'up'
-      ? Colors.priceUp
-      : product.price_direction === 'down'
-        ? Colors.priceDown
-        : Colors.priceNeutral;
+// Subcomponents
 
-  const Icon = product.price_direction === 'up' ? TrendingUp : TrendingDown;
+function TickerItem({ product }: { product: Product }) {
+  const isUp = product.price_direction === 'up';
+  const isDown = product.price_direction === 'down';
+  const color = isUp ? Colors.priceUp : isDown ? Colors.priceDown : Colors.priceNeutral;
+  const Icon = isUp ? TrendingUp : TrendingDown;
+  const priceQty = product.price_quantity || 1;
 
   return (
     <View style={styles.tickerItem}>
       <Text style={styles.tickerName}>{product.name}</Text>
-      <View style={styles.tickerPriceRow}>
-        <Text style={styles.tickerPrice}>₹{product.current_price}/kg</Text>
+      <View style={styles.tickerRow}>
+        <Text style={styles.tickerPrice}>₹{product.current_price}</Text>
         {product.price_direction !== 'neutral' && (
-          <View style={[styles.tickerChange, { backgroundColor: priceColor }]}>
-            <Icon size={12} color={Colors.white} />
-            <Text style={styles.tickerChangeText}>
-              {Math.abs(product.price_change_percentage)}%
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Icon size={12} color={color} />
+            <Text style={[styles.tickerChange, { color }]}>{Math.abs(product.price_change_percentage)}%</Text>
           </View>
         )}
       </View>
@@ -219,80 +261,73 @@ function ProductCard({
   onRemoveFromCart: (weight: number) => void;
   quantityInCart: (weight: number) => number;
 }) {
-  const [selectedWeight, setSelectedWeight] = useState(1);
-  const quantity = quantityInCart(selectedWeight);
+  const getDefaultWeight = () => {
+    if (product.unit === 'kg') return 1;
+    if (product.unit === 'g') return 250;
+    return 1;
+  };
 
-  const priceColor =
-    product.price_direction === 'up'
-      ? Colors.priceUp
-      : product.price_direction === 'down'
-        ? Colors.priceDown
-        : Colors.priceNeutral;
+  const [selectedWeight, setSelectedWeight] = useState(getDefaultWeight());
+  const quantity = quantityInCart(selectedWeight);
+  const priceQty = product.price_quantity || 1;
+
+  const getOptions = () => {
+    if (product.unit === 'kg') return [0.5, 1, 2];
+    if (product.unit === 'g') return [250, 500, 1000];
+    if (product.unit === 'pc' || product.unit === 'pack') return [1, 2, 4];
+    return [1, 2, 5];
+  };
+
+  const options = getOptions();
 
   return (
-    <TouchableOpacity style={styles.productCard} onPress={onPress} activeOpacity={0.8}>
-      <Image source={{ uri: product.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{product.name}</Text>
-        {product.description && (
-          <Text style={styles.productDescription} numberOfLines={2}>
-            {product.description}
-          </Text>
-        )}
-        <View style={styles.priceRow}>
-          <Text style={styles.productPrice}>₹{product.current_price}/kg</Text>
-          {product.price_direction !== 'neutral' && (
-            <View style={[styles.priceIndicator, { backgroundColor: priceColor }]}>
-              <Text style={styles.priceIndicatorText}>
-                {product.price_direction === 'up' ? '↑' : '↓'}
-                {Math.abs(product.price_change_percentage)}%
-              </Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.weightSelector}>
-          {[1, 1.5, 2].map((weight) => (
-            <TouchableOpacity
-              key={weight}
-              style={[
-                styles.weightButton,
-                selectedWeight === weight && styles.weightButtonActive,
-              ]}
-              onPress={() => setSelectedWeight(weight)}
-            >
-              <Text
-                style={[
-                  styles.weightButtonText,
-                  selectedWeight === weight && styles.weightButtonTextActive,
-                ]}
-              >
-                {weight}kg
-              </Text>
-            </TouchableOpacity>
-          ))}
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+      <Image source={{ uri: product.image }} style={styles.cardImage} resizeMode="cover" />
+
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>{product.name}</Text>
+          <View style={styles.priceTag}>
+            <Text style={styles.priceTagText}>₹{product.current_price}</Text>
+            <Text style={styles.priceUnit}>/{product.unit}</Text>
+          </View>
         </View>
 
+        <Text style={styles.cardDesc} numberOfLines={2}>{product.description}</Text>
+
+        {/* Variant Selector */}
+        <View style={styles.variantContainer}>
+          {options.map((opt) => {
+            const label = (product.unit === 'kg' || product.unit === 'g')
+              ? `${opt}${product.unit}`
+              : `${opt * priceQty} ${product.unit}`; // e.g. 1 * 15 eggs = 15 eggs
+            const isSelected = selectedWeight === opt;
+
+            return (
+              <TouchableOpacity
+                key={opt}
+                style={[styles.variantChip, isSelected && styles.variantChipActive]}
+                onPress={() => setSelectedWeight(opt)}
+              >
+                <Text style={[styles.variantText, isSelected && styles.variantTextActive]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Add Button */}
         {quantity === 0 ? (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => onAddToCart(selectedWeight)}
-          >
-            <Text style={styles.addButtonText}>ADD</Text>
+          <TouchableOpacity style={styles.addBtn} onPress={() => onAddToCart(selectedWeight)}>
+            <Text style={styles.addBtnText}>ADD +</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.quantityControl}>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => onRemoveFromCart(selectedWeight)}
-            >
-              <Text style={styles.quantityButtonText}>−</Text>
+          <View style={styles.qtyContainer}>
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => onRemoveFromCart(selectedWeight)}>
+              <Minus size={16} color={Colors.white} />
             </TouchableOpacity>
-            <Text style={styles.quantityText}>{quantity}</Text>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => onAddToCart(selectedWeight)}
-            >
-              <Text style={styles.quantityButtonText}>+</Text>
+            <Text style={styles.qtyText}>{quantity}</Text>
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => onAddToCart(selectedWeight)}>
+              <Plus size={16} color={Colors.white} />
             </TouchableOpacity>
           </View>
         )}
@@ -304,296 +339,337 @@ function ProductCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.deepTeal,
+    backgroundColor: Colors.cream,
   },
-  safeArea: {
+  // Header
+  headerBg: {
     backgroundColor: Colors.deepTeal,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    zIndex: 10,
+    marginBottom: -24, // Overlap effect
   },
-  header: {
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    height: 50,
   },
   logo: {
-    fontSize: 28,
-    fontWeight: 'bold' as const,
+    fontSize: 26,
+    fontWeight: '800',
     color: Colors.cream,
     letterSpacing: 0.5,
   },
-  cartButton: {
+  cartBtn: {
     position: 'relative',
+    padding: 4,
   },
-  cartBadge: {
+  badge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -4,
+    right: -4,
     backgroundColor: Colors.orange,
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.deepTeal,
   },
-  cartBadgeText: {
+  badgeText: {
     color: Colors.white,
-    fontSize: 11,
-    fontWeight: 'bold' as const,
+    fontSize: 10,
+    fontWeight: '800',
   },
-  searchContainer: {
+  searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.deepTealDark,
-    marginHorizontal: 20,
-    marginBottom: 16,
+    backgroundColor: Colors.white,
+    marginHorizontal: 24,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    gap: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
+    gap: 10,
+    shadowColor: Colors.deepTeal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   searchInput: {
     flex: 1,
-    color: Colors.cream,
-    fontSize: 16,
+    fontSize: 15,
+    color: Colors.deepTeal,
+    fontWeight: '500',
   },
+
+  // Scroll
   scrollView: {
     flex: 1,
-    backgroundColor: Colors.cream,
   },
-  scrollViewContent: {
-    paddingBottom: 100, // Space for the bottom banner
+  scrollContent: {
+    paddingTop: 40, // Space for header overlap
   },
-  promoBanner: {
-    backgroundColor: Colors.orange,
-    padding: 24,
-    marginBottom: 20,
-    alignItems: 'center',
+
+  // Ticker
+  tickerSection: {
+    marginBottom: 24,
   },
-  promoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
-    marginBottom: 12,
-  },
-  promoBadge: {
-    backgroundColor: Colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  promoBadgeText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.orange,
-  },
-  tickerContainer: {
-    paddingVertical: 20,
-    backgroundColor: Colors.deepTealDark,
-    marginBottom: 20,
-  },
-  tickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
-    color: Colors.cream,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  tickerItem: {
-    backgroundColor: Colors.deepTeal,
-    padding: 16,
-    marginLeft: 20,
-    borderRadius: 16,
-    minWidth: 160,
-  },
-  tickerName: {
-    fontSize: 14,
-    color: Colors.creamLight,
-    marginBottom: 8,
-  },
-  tickerPriceRow: {
+  tickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 12,
     gap: 8,
   },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.extrared,
+  },
+  tickerTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.deepTeal,
+    letterSpacing: 1,
+  },
+  tickerItem: {
+    backgroundColor: Colors.white,
+    padding: 12,
+    borderRadius: 16,
+    marginRight: 12,
+    minWidth: 130,
+    shadowColor: Colors.charcoal,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  tickerName: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  tickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   tickerPrice: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
-    color: Colors.cream,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.charcoal,
   },
   tickerChange: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 8,
-    gap: 2,
-  },
-  tickerChangeText: {
     fontSize: 11,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
+    fontWeight: '700',
   },
+
+  // Products
   productsSection: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold' as const,
+    fontSize: 20,
+    fontWeight: '800',
     color: Colors.charcoal,
     marginBottom: 16,
+    marginLeft: 4,
   },
-  productsGrid: {
-    gap: 16,
+  grid: {
+    gap: 20,
   },
-  productCard: {
+
+  // Product Card
+  card: {
     backgroundColor: Colors.white,
     borderRadius: 24,
     shadowColor: Colors.charcoal,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 4,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+    overflow: 'hidden',
   },
-  productImage: {
+  cardImage: {
     width: '100%',
-    height: 200,
+    height: 180,
     backgroundColor: Colors.creamLight,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
   },
-  productInfo: {
-    padding: 16,
+  cardContent: {
+    padding: 20,
   },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.charcoal,
-    marginBottom: 4,
-  },
-  productDescription: {
-    fontSize: 12,
-    color: Colors.charcoal + '80', // semi-transparent
-    marginBottom: 8,
-  },
-  priceRow: {
+  cardHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
   },
-  productPrice: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.charcoal,
+    flex: 1,
+    marginRight: 8,
   },
-  priceIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  priceTag: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  priceIndicatorText: {
+  priceTagText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.orange,
+  },
+  priceUnit: {
     fontSize: 12,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
+    color: '#888',
+    fontWeight: '600',
   },
-  weightSelector: {
+  cardDesc: {
+    fontSize: 13,
+    color: '#888',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  variantContainer: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  weightButton: {
+  variantChip: {
     flex: 1,
     paddingVertical: 8,
     borderRadius: 12,
     backgroundColor: Colors.creamLight,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  weightButtonActive: {
-    backgroundColor: Colors.tealBlue,
+  variantChipActive: {
+    backgroundColor: Colors.deepTeal,
   },
-  weightButtonText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+  variantText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: Colors.charcoal,
   },
-  weightButtonTextActive: {
+  variantTextActive: {
     color: Colors.white,
   },
-  addButton: {
-    backgroundColor: Colors.orange,
-    paddingVertical: 12,
+
+  // Add Button / Qty
+  addBtn: {
+    backgroundColor: Colors.deepTeal,
     borderRadius: 16,
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
+  addBtnText: {
     color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  quantityControl: {
+  qtyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.deepTeal,
     borderRadius: 16,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    padding: 6,
   },
-  quantityButton: {
-    width: 36,
-    height: 36,
+  qtyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 12,
   },
-  quantityButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    color: Colors.deepTeal,
-  },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
+  qtyText: {
     color: Colors.white,
-    marginHorizontal: 12,
+    fontSize: 16,
+    fontWeight: '700',
   },
-  viewCartBanner: {
+
+  // Floating Cart
+  floatCartContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 24,
     left: 20,
     right: 20,
+  },
+  floatCartBtn: {
     backgroundColor: Colors.orange,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    justifyContent: 'space-between',
+    shadowColor: Colors.orange,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 16,
     elevation: 8,
+  },
+  floatCartLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  floatIconBg: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: Colors.deepTeal,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  floatCartLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+  },
+  floatCartValue: {
+    fontSize: 18,
+    color: Colors.white,
+    fontWeight: '800',
+  },
+  floatCartRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
   viewCartText: {
     color: Colors.white,
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-  },
-  viewCartButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  viewCartButtonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: 'bold' as const,
+    fontWeight: '700',
+    fontSize: 13,
   },
 });

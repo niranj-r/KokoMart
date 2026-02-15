@@ -9,40 +9,50 @@ import {
   Alert,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Scissors, Box, Truck, CheckCircle, Clock } from 'lucide-react-native';
+import { Package, Scissors, Box, Truck, CheckCircle, Clock, ChevronRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Order, OrderStatus } from '@/types';
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: string }> = {
-  pending: { label: 'Order Pending', icon: Clock, color: Colors.orange },
-  confirmed: { label: 'Order Confirmed', icon: Package, color: Colors.tealBlue }, // Added confirmed to satisfy all keys or map safely
-  received: { label: 'Order Received', icon: Package, color: Colors.tealBlue },
-  cutting: { label: 'Cutting', icon: Scissors, color: Colors.orange },
-  packing: { label: 'Packing', icon: Box, color: Colors.orange },
-  out_for_delivery: { label: 'Out for Delivery', icon: Truck, color: Colors.priceUp },
-  delivered: { label: 'Delivered', icon: CheckCircle, color: Colors.priceUp },
-  cancelled: { label: 'Cancelled', icon: Box, color: Colors.priceDown },
+const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: string; bgColor: string }> = {
+  pending: { label: 'Order Pending', icon: Clock, color: Colors.orange, bgColor: '#FFF4E6' },
+  confirmed: { label: 'Confirmed', icon: CheckCircle, color: Colors.tealBlue, bgColor: '#E6F4F1' },
+  received: { label: 'Received', icon: Package, color: Colors.tealBlue, bgColor: '#E6F4F1' },
+  cutting: { label: 'Cutting', icon: Scissors, color: Colors.orange, bgColor: '#FFF4E6' },
+  packing: { label: 'Packing', icon: Box, color: Colors.orange, bgColor: '#FFF4E6' },
+  out_for_delivery: { label: 'Out for Delivery', icon: Truck, color: Colors.priceUp, bgColor: '#E6F5EA' },
+  delivered: { label: 'Delivered', icon: CheckCircle, color: Colors.priceUp, bgColor: '#E6F5EA' },
+  cancelled: { label: 'Cancelled', icon: Box, color: Colors.priceDown, bgColor: '#FEE2E2' },
 };
 
 export default function OrdersScreen() {
   const { orders, cancelOrder } = useApp();
   const insets = useSafeAreaInsets();
 
+  // Custom Header
+  const renderHeader = () => (
+    <View style={[styles.headerBg, { paddingTop: insets.top }]}>
+      <View style={styles.headerContent}>
+        <Text style={styles.headerTitle}>My Orders</Text>
+      </View>
+    </View>
+  );
+
   if (orders.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.headerTitle}>Orders</Text>
-          </View>
-        </View>
+        {renderHeader()}
         <View style={styles.emptyContainer}>
-          <Package size={80} color={Colors.extrared} />
-          <Text style={styles.emptyTitle}>No orders yet</Text>
-          <Text style={styles.emptySubtitle}>Your orders will appear here</Text>
+          <View style={styles.emptyIconBg}>
+            <Package size={64} color={Colors.deepTeal} />
+          </View>
+          <Text style={styles.emptyTitle}>No Orders Yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Your order history will appear here once you place an order.
+          </Text>
         </View>
       </View>
     );
@@ -50,18 +60,18 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : insets.top }]}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Orders</Text>
-        </View>
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.ordersContainer}>
+      {renderHeader()}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.ordersList}>
           {orders.map((order) => (
             <OrderCard key={order.id} order={order} onCancel={cancelOrder} />
           ))}
         </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -73,122 +83,144 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
 
   return (
     <View style={styles.orderCard}>
-      <View style={styles.orderHeader}>
+      {/* Card Header */}
+      <View style={styles.cardHeader}>
         <View>
-          <Text style={styles.orderId}>Order #{order.id.slice(-8).toUpperCase()}</Text>
+          <Text style={styles.orderId}>ORDER #{order.id.slice(-6).toUpperCase()}</Text>
           <Text style={styles.orderDate}>
             {new Date(order.created_at).toLocaleDateString('en-IN', {
               day: 'numeric',
               month: 'short',
-              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
             })}
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: config.color }]}>
-          <Icon size={16} color={Colors.white} />
-          <Text style={styles.statusText}>{config.label}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: config.bgColor }]}>
+          <Icon size={14} color={config.color} />
+          <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
         </View>
-      </View>
-
-      <View style={styles.orderItems}>
-        {order.items.map((item, index) => (
-          <Text key={index} style={styles.itemText}>
-            • {item.name} ({item.weight}kg × {item.quantity})
-            {item.cuttingType ? ` • ${item.cuttingType}` : ''}
-          </Text>
-        ))}
       </View>
 
       <View style={styles.divider} />
 
-      <View style={styles.orderFooter}>
+      {/* Order Items */}
+      <View style={styles.itemsList}>
+        {order.items.map((item, index) => (
+          <View key={`${order.id}-item-${index}`} style={styles.itemRow}>
+            <View style={styles.itemBullet} />
+            <Text style={styles.itemText} numberOfLines={1}>
+              <Text style={{ fontWeight: '700' }}>{item.quantity}x </Text>
+              {item.name}
+              <Text style={{ color: '#888' }}> ({item.weight}kg{item.cuttingType ? ` • ${item.cuttingType}` : ''})</Text>
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Timeline (Simplified) */}
+      {order.status !== 'delivered' && order.status !== 'cancelled' && (
+        <View style={styles.timelineContainer}>
+          <OrderTimeline currentStatus={order.status} />
+        </View>
+      )}
+
+      <View style={styles.divider} />
+
+      {/* Footer */}
+      <View style={styles.cardFooter}>
         <View>
           <Text style={styles.totalLabel}>Total Amount</Text>
           <Text style={styles.totalValue}>₹{order.final_amount.toFixed(2)}</Text>
         </View>
-        {order.status === 'delivered' && (
-          <View style={styles.pointsEarned}>
-            <Text style={styles.pointsText}>+{order.earned_points} Points</Text>
-          </View>
-        )}
-      </View>
 
-      {order.status === 'pending' && (
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => {
-            Alert.alert(
-              "Cancel Order",
-              "Are you sure you want to cancel this order? Any points used will be refunded.",
-              [
-                { text: "No", style: "cancel" },
-                {
-                  text: "Yes, Cancel",
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      await onCancel(order.id);
-                    } catch (e: any) {
-                      Alert.alert("Error", "Failed to cancel order: " + e.message);
-                    }
+        {order.status === 'pending' ? (
+          <TouchableOpacity
+            style={styles.cancelBtn}
+            onPress={() => {
+              Alert.alert(
+                "Cancel Order",
+                "Are you sure?",
+                [
+                  { text: "No", style: "cancel" },
+                  {
+                    text: "Yes, Cancel",
+                    style: 'destructive',
+                    onPress: async () => onCancel(order.id)
                   }
-                }
-              ]
-            )
-          }}
-        >
-          <Text style={styles.cancelButtonText}>Cancel Order</Text>
-        </TouchableOpacity>
-      )}
-
-      {order.status !== 'delivered' && order.status !== 'cancelled' && (
-        <OrderTimeline currentStatus={order.status} />
-      )}
+                ]
+              )
+            }}
+          >
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        ) : order.status === 'delivered' ? (
+          <View style={styles.pointsBadge}>
+            <Image source={require('../../assets/images/cp.png')} style={{ width: 16, height: 16 }} />
+            <Text style={styles.pointsText}>+{order.earned_points} pts</Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
 
 function OrderTimeline({ currentStatus }: { currentStatus: OrderStatus }) {
-  const statuses: OrderStatus[] = ['pending', 'received', 'cutting', 'packing', 'out_for_delivery', 'delivered'];
-  const currentIndex = statuses.indexOf(currentStatus);
+  // Updated timeline steps to include At Least: Received, Cutting, Packing, Out, Delivered
+  const steps: { key: OrderStatus; label: string }[] = [
+    { key: 'received', label: 'Received' },
+    { key: 'cutting', label: 'Cutting' },
+    { key: 'packing', label: 'Packing' },
+    { key: 'out_for_delivery', label: 'Out for Delivery' },
+    { key: 'delivered', label: 'Delivered' },
+  ];
+
+  // Map current status to index for progress
+  const allStatuses: OrderStatus[] = ['pending', 'received', 'confirmed', 'cutting', 'packing', 'out_for_delivery', 'delivered'];
+  const currentIndex = allStatuses.indexOf(currentStatus);
 
   return (
-    <View style={styles.timeline}>
-      {statuses.map((status, index) => {
-        const config = STATUS_CONFIG[status];
-        const Icon = config.icon;
-        const isCompleted = index <= currentIndex;
-        const isCurrent = index === currentIndex;
+    <View style={styles.progressBarContainer}>
+      {steps.map((step, index) => {
+        let isActive = false;
+        let isCompleted = false;
+
+        const stepStatusIndex = allStatuses.indexOf(step.key);
+
+        // Active if current status is at least this step
+        if (currentIndex >= stepStatusIndex) isActive = true;
+        // Completed if current status is past this step
+        if (currentIndex > stepStatusIndex) isCompleted = true;
+
+        // Special handling for the last step (Delivered)
+        if (step.key === 'delivered' && currentStatus === 'delivered') {
+          isActive = true;
+          isCompleted = true;
+        }
 
         return (
-          <View key={status} style={styles.timelineItem}>
-            <View
-              style={[
-                styles.timelineIcon,
-                isCompleted && styles.timelineIconActive,
-                isCurrent && styles.timelineIconCurrent,
-              ]}
-            >
-              <Icon
-                size={16}
-                color={isCompleted ? Colors.white : Colors.extrared}
-              />
+          <View key={step.key} style={[styles.stepItem, { width: 60 }]}>
+            <View style={[
+              styles.stepDot,
+              isActive && styles.stepDotActive,
+              isCompleted && styles.stepDotCompleted
+            ]}>
+              {isCompleted && <CheckCircle size={8} color={Colors.white} />}
             </View>
-            <Text
-              style={[
-                styles.timelineLabel,
-                isCompleted && styles.timelineLabelActive,
-              ]}
-            >
-              {config.label}
+
+            <Text style={[
+              styles.stepLabel,
+              isActive && styles.stepLabelActive
+            ]}>
+              {step.label === 'Out for Delivery' ? 'Out' : step.label}
             </Text>
-            {index < statuses.length - 1 && (
-              <View
-                style={[
-                  styles.timelineLine,
-                  isCompleted && styles.timelineLineActive,
-                ]}
-              />
+
+            {index < steps.length - 1 && (
+              <View style={[
+                styles.stepConnector,
+                { left: 37, width: 46 }, // Adjusted for smaller width
+                isActive && currentIndex >= allStatuses.indexOf(steps[index + 1].key) && styles.stepConnectorActive
+              ]} />
             )}
           </View>
         );
@@ -202,178 +234,248 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.cream,
   },
-  safeArea: {
+  // Header
+  headerBg: {
     backgroundColor: Colors.deepTeal,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: -20,
+    zIndex: 10,
   },
-  headerContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    height: 60,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold' as const,
+    fontSize: 22,
+    fontWeight: '800',
     color: Colors.cream,
+    letterSpacing: 0.5,
   },
+
+  // Scroll
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    padding: 20,
+    paddingTop: 40,
+  },
+  ordersList: {
+    gap: 20,
+  },
+
+  // Empty State
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
+    marginTop: 60,
+  },
+  emptyIconBg: {
+    width: 100,
+    height: 100,
+    backgroundColor: Colors.white,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    shadowColor: Colors.deepTeal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: 'bold' as const,
+    fontSize: 20,
+    fontWeight: '800',
     color: Colors.charcoal,
-    marginTop: 20,
     marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 16,
-    color: Colors.extrared,
+    fontSize: 15,
+    color: '#888',
     textAlign: 'center',
+    paddingHorizontal: 40,
   },
-  ordersContainer: {
-    padding: 20,
-    gap: 16,
-  },
+
+  // Order Card
   orderCard: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     shadowColor: Colors.charcoal,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 3,
   },
-  orderHeader: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 16,
   },
   orderId: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
-    color: Colors.charcoal,
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.deepTeal,
+    opacity: 0.7,
+    letterSpacing: 0.5,
   },
   orderDate: {
-    fontSize: 14,
-    color: Colors.extrared,
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderRadius: 12,
     gap: 6,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
-  },
-  orderItems: {
-    gap: 8,
-  },
-  itemText: {
-    fontSize: 15,
-    color: Colors.charcoal,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.creamLight,
-    marginVertical: 16,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 14,
   },
-  orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: Colors.extrared,
+
+  // Items
+  itemsList: {
+    gap: 8,
     marginBottom: 4,
   },
-  totalValue: {
-    fontSize: 22,
-    fontWeight: 'bold' as const,
-    color: Colors.orange,
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  pointsEarned: {
-    backgroundColor: Colors.tealBlue,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+  itemBullet: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.deepTeal,
+    marginRight: 10,
+    opacity: 0.5,
   },
-  pointsText: {
+  itemText: {
     fontSize: 14,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
+    color: Colors.charcoal,
+    flex: 1,
   },
-  timeline: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: Colors.creamLight,
-    gap: 16,
+
+  // Timeline
+  timelineContainer: {
+    marginTop: 10,
+    backgroundColor: '#FAFAFA',
+    padding: 12,
+    borderRadius: 16,
   },
-  timelineItem: {
+  progressBarContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 10,
+  },
+  stepItem: {
+    alignItems: 'center',
+    width: 80,
     position: 'relative',
   },
-  timelineIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.creamLight,
+  stepDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#E0E0E0',
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: '#FFF',
+    zIndex: 2,
+  },
+  stepDotActive: {
+    backgroundColor: Colors.orange,
+  },
+  stepDotCompleted: {
+    backgroundColor: Colors.deepTeal,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timelineIconActive: {
-    backgroundColor: Colors.tealBlue,
+  stepLabel: {
+    fontSize: 10,
+    color: '#999',
+    textAlign: 'center',
   },
-  timelineIconCurrent: {
-    backgroundColor: Colors.orange,
-  },
-  timelineLabel: {
-    position: 'absolute',
-    left: 44,
-    top: 8,
-    fontSize: 14,
-    color: Colors.extrared,
-  },
-  timelineLabelActive: {
+  stepLabelActive: {
     color: Colors.charcoal,
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
-  timelineLine: {
+  stepConnector: {
     position: 'absolute',
-    left: 15,
-    top: 32,
-    width: 2,
-    height: 16,
-    backgroundColor: Colors.creamLight,
+    top: 6,
+    left: 47, // Half of width (40) + approx dot half (7) 
+    width: 66, // distance to next dot
+    height: 2,
+    backgroundColor: '#E0E0E0',
+    zIndex: 1,
   },
-  timelineLineActive: {
-    backgroundColor: Colors.tealBlue,
+  stepConnectorActive: {
+    backgroundColor: Colors.deepTeal,
   },
-  cancelButton: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: Colors.priceDown + '20',
+
+  // Footer
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
+  },
+  totalLabel: {
+    fontSize: 12,
+    color: '#888',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.charcoal,
+  },
+  cancelBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.priceDown,
+    backgroundColor: '#FFF5F5',
   },
-  cancelButtonText: {
+  cancelBtnText: {
     color: Colors.priceDown,
-    fontWeight: 'bold',
-    fontSize: 14,
-  }
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1', // very light orange/yellow
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  pointsText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.orange,
+  },
 });
