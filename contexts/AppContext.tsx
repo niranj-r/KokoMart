@@ -18,7 +18,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     is_first_order_completed: false,
     wallet_points: 150,
     created_at: Date.now(),
-    created_at: Date.now(),
   });
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -217,7 +216,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
         note,
       };
 
-      const result = await OrderService.createOrder(orderPayload);
       const result = await OrderService.createOrder(orderPayload);
 
       // Update address if it's new/changed
