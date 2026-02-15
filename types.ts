@@ -70,6 +70,7 @@ export interface Order {
     wallet_used: number;
     final_amount: number;
     earned_points: number;
+    points_credited?: boolean;
     status: OrderStatus;
     created_at: number;
     address: string;

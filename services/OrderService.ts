@@ -1,6 +1,6 @@
 import { db } from '@/config/firebaseConfig';
-import { collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, onSnapshot, runTransaction } from 'firebase/firestore';
-import { Order } from '@/types';
+import { collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, onSnapshot, getDoc, runTransaction } from 'firebase/firestore';
+import { Order, OrderStatus } from '@/types';
 import { UserService } from './UserService';
 
 export const OrderService = {
@@ -61,13 +61,13 @@ export const OrderService = {
                 }
             }
 
-            // Add earned points
-            if (orderData.earned_points > 0) {
-                const user = await UserService.getUser(orderData.user_id);
-                if (user) {
-                    await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
-                }
-            }
+            // Points will be credited upon delivery
+            // if (orderData.earned_points > 0) {
+            //     const user = await UserService.getUser(orderData.user_id);
+            //     if (user) {
+            //         await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
+            //     }
+            // }
 
             // Update first order status
             const user = await UserService.getUser(orderData.user_id);
@@ -96,10 +96,26 @@ export const OrderService = {
         }
     },
 
-    updateOrderStatus: async (orderId: string, status: any) => {
+    updateOrderStatus: async (orderId: string, status: OrderStatus) => {
         try {
             const orderRef = doc(db, 'orders', orderId);
-            await updateDoc(orderRef, { status });
+            const orderSnap = await getDoc(orderRef);
+
+            if (!orderSnap.exists()) return;
+
+            const orderData = orderSnap.data() as Order;
+            const updates: any = { status };
+
+            // Check if delivering and points haven't been credited
+            if (status === 'delivered' && !orderData.points_credited && (orderData.earned_points || 0) > 0) {
+                const user = await UserService.getUser(orderData.user_id);
+                if (user) {
+                    await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
+                    updates.points_credited = true;
+                }
+            }
+
+            await updateDoc(orderRef, updates);
         } catch (error) {
             console.error("Error updating order status:", error);
             throw error;
@@ -120,20 +136,67 @@ export const OrderService = {
     // Safe update for demo simulation to prevent overwriting 'cancelled' status
     advanceDemoOrderStatus: async (orderId: string, nextStatus: any) => {
         try {
+            console.log(`[OrderService] advanceDemoOrderStatus called for ${orderId} -> ${nextStatus}`);
             const orderRef = doc(db, 'orders', orderId);
-            // Transactionless check for simplicity, but reads fresh data
-            const orderSnap = await import('firebase/firestore').then(mod => mod.getDoc(orderRef));
+            // Use standard getDoc import
+            const orderSnap = await getDoc(orderRef);
 
             if (orderSnap.exists()) {
-                const currentStatus = orderSnap.data().status;
+                const orderData = orderSnap.data() as Order;
+                const currentStatus = orderData.status;
+
                 if (currentStatus === 'cancelled' || currentStatus === 'delivered') {
                     console.log(`Skipping auto-update for order ${orderId} as it is ${currentStatus}`);
                     return;
                 }
-                await updateDoc(orderRef, { status: nextStatus });
+
+                const updates: any = { status: nextStatus };
+
+                // Credit points on delivery simulation
+                if (nextStatus === 'delivered') {
+                    console.log(`[OrderService] Checking points for order ${orderId}: earned=${orderData.earned_points}, credited=${orderData.points_credited}`);
+                    if (!orderData.points_credited && (orderData.earned_points || 0) > 0) {
+                        const user = await UserService.getUser(orderData.user_id);
+                        if (user) {
+                            const newTotal = (user.wallet_points || 0) + orderData.earned_points;
+                            await UserService.updateWallet(orderData.user_id, newTotal);
+                            updates.points_credited = true;
+                            console.log(`[OrderService] Credited ${orderData.earned_points} points to user ${orderData.user_id}. New total: ${newTotal}`);
+                        } else {
+                            console.error(`[OrderService] User ${orderData.user_id} not found for point crediting`);
+                        }
+                    } else {
+                        console.log(`[OrderService] Skipping point credit. Reason: ${orderData.points_credited ? 'Already credited' : 'Earned points is 0 or undefined'}`);
+                    }
+                }
+
+                await updateDoc(orderRef, updates);
             }
         } catch (error) {
             console.error("Error advancing order status:", error);
+        }
+    },
+
+    ensurePointsCredited: async (orderId: string) => {
+        try {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnap = await getDoc(orderRef);
+
+            if (orderSnap.exists()) {
+                const orderData = orderSnap.data() as Order;
+                if (orderData.status === 'delivered' && !orderData.points_credited && (orderData.earned_points || 0) > 0) {
+                    console.log(`[OrderService] Catch-up crediting points for order ${orderId}`);
+                    const user = await UserService.getUser(orderData.user_id);
+                    if (user) {
+                        const newTotal = (user.wallet_points || 0) + orderData.earned_points;
+                        await UserService.updateWallet(orderData.user_id, newTotal);
+                        await updateDoc(orderRef, { points_credited: true });
+                        console.log(`[OrderService] Catch-up success: Credited ${orderData.earned_points} points.`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error ensuring points credited:", error);
         }
     }
 };

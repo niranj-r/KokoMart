@@ -1,5 +1,5 @@
 import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { CartItem, User, Order, WalletTransaction, OrderStatus } from '@/types';
 import { ProductService } from '@/services/ProductService';
 import { OrderService } from '@/services/OrderService';
@@ -18,12 +18,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
     is_first_order_completed: false,
     wallet_points: 150,
     created_at: Date.now(),
+    created_at: Date.now(),
   });
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const ordersRef = useRef<Order[]>([]); // Ref to track orders for interval without stale closures
   const [walletHistory, setWalletHistory] = useState<WalletTransaction[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+
+  // Keep ref in sync
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
 
   // Sync with Firebase Auth
   useEffect(() => {
@@ -31,56 +38,33 @@ export const [AppProvider, useApp] = createContextHook(() => {
     let simulationInterval: ReturnType<typeof setInterval> | undefined;
     let isMounted = true;
 
-    const initUser = async () => {
+    const initUser = () => {
       if (authUser) {
-        // Fetch fresh profile from Firestore
-        const profile = await UserService.getUser(authUser.uid);
-
-        if (!isMounted) return;
-
-        if (profile) {
-          setUser({
-            id: profile.id,
-            name: profile.name,
-            email: profile.email,
-            phone: profile.phone || '',
-            address: profile.address || '',
-            is_first_order_completed: profile.is_first_order_completed,
-            wallet_points: profile.wallet_points,
-            created_at: profile.created_at, // Already a number from firestore usually
-          });
-
-          // Real-time order updates
-          unsubscribeOrders = OrderService.subscribeToUserOrders(profile.id, (userOrders) => {
-            if (isMounted) {
-              setOrders(userOrders);
-            }
-          });
-
-          // Simulation: Advance order status every 5 minutes
-          const statusFlow: OrderStatus[] = ['pending', 'confirmed', 'received', 'cutting', 'packing', 'out_for_delivery', 'delivered'];
-          simulationInterval = setInterval(() => {
-            console.log("Simulating order status updates...");
-            setOrders(currentOrders => {
-              currentOrders.forEach(async (order) => {
-                if (order.status !== 'delivered' && order.status !== 'cancelled') {
-                  const currentIndex = statusFlow.indexOf(order.status);
-                  if (currentIndex !== -1 && currentIndex < statusFlow.length - 1) {
-                    const nextStatus = statusFlow[currentIndex + 1];
-                    try {
-                      // Use safe update to check if it wasn't cancelled in the meantime
-                      await OrderService.advanceDemoOrderStatus(order.id, nextStatus);
-                      console.log(`Attempted auto-update for order ${order.id} to ${nextStatus}`);
-                    } catch (e) {
-                      console.error(`Failed to auto-update order ${order.id}`, e);
-                    }
-                  }
-                }
-              });
-              return currentOrders;
+        // Real-time user profile subscription
+        const unsubscribeUser = UserService.subscribeToUser(authUser.uid, (profile) => {
+          if (isMounted && profile) {
+            setUser({
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              phone: profile.phone || '',
+              address: profile.address || '',
+              is_first_order_completed: profile.is_first_order_completed,
+              wallet_points: profile.wallet_points,
+              created_at: profile.created_at,
             });
-          }, 5 * 60 * 1000); // 5 minutes
-        }
+          }
+        });
+
+        // Real-time order updates
+        unsubscribeOrders = OrderService.subscribeToUserOrders(authUser.uid, (userOrders) => {
+          if (isMounted) {
+            setOrders(userOrders);
+          }
+        });
+
+        return unsubscribeUser;
+
       } else {
         // Reset to guest
         setUser({
@@ -97,12 +81,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     };
 
-    initUser();
+    const userUnsubscribe = initUser();
 
     return () => {
       isMounted = false;
       if (unsubscribeOrders) unsubscribeOrders();
-      if (simulationInterval) clearInterval(simulationInterval);
+      if (userUnsubscribe && typeof userUnsubscribe === 'function') userUnsubscribe();
     };
   }, [authUser]);
 
@@ -115,6 +99,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     return () => unsubscribe();
   }, []);
+
+  // Reactive point crediting
+  // If the Admin Portal updates status to 'delivered' but doesn't credit points, this client will do it.
+  useEffect(() => {
+    orders.forEach(async (order) => {
+      if (order.status === 'delivered' && !order.points_credited && (order.earned_points || 0) > 0) {
+        console.log(`[AppContext] Detected delivered order ${order.id} needing points. Triggering credit.`);
+        await OrderService.ensurePointsCredited(order.id);
+      }
+    });
+  }, [orders]);
 
   const addToCart = (productId: string, quantity: number, weight: number, cuttingType?: string) => {
     const product = products.find((p) => p.id === productId);
@@ -194,6 +189,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       const finalAmount = subtotal - discount - walletUsed;
       // Chicken Points: 1 point per 1 kg (total weight)
       const earnedPoints = Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0));
+      console.log(`[AppContext] Calculated earned points: ${earnedPoints}`);
 
       const orderPayload = {
         user_id: user.id,
@@ -222,6 +218,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       };
 
       const result = await OrderService.createOrder(orderPayload);
+      const result = await OrderService.createOrder(orderPayload);
 
       // Update address if it's new/changed
       if (address && address !== user.address) {
@@ -231,6 +228,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
 
       clearCart();
+      return result;
       return result;
     } catch (e) {
       console.error("Order Failed", e);
