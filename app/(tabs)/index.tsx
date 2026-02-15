@@ -318,7 +318,7 @@ function ProductCard({
         {/* Add Button */}
         {quantity === 0 ? (
           <TouchableOpacity style={styles.addBtn} onPress={() => onAddToCart(selectedWeight)}>
-            <Text style={styles.addBtnText}>ADD +</Text>
+            <Text style={styles.addBtnText}>ADD</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.qtyContainer}>

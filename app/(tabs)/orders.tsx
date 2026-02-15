@@ -18,6 +18,7 @@ import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Order, OrderStatus } from '@/types';
 import SupportChatModal from '@/components/SupportChatModal';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: string; bgColor: string }> = {
   pending: { label: 'Order Pending', icon: Clock, color: Colors.orange, bgColor: '#FFF4E6' },
@@ -34,9 +35,24 @@ export default function OrdersScreen() {
   const { orders, cancelOrder } = useApp();
   const insets = useSafeAreaInsets();
   const [chatVisible, setChatVisible] = React.useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = React.useState(false);
+  const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
 
   const handleSupportPress = () => {
     setChatVisible(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (selectedOrderId) {
+      await cancelOrder(selectedOrderId);
+      setCancelModalVisible(false);
+      setSelectedOrderId(null);
+    }
+  };
+
+  const attemptCancel = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setCancelModalVisible(true);
   };
 
   // Custom Header
@@ -78,7 +94,7 @@ export default function OrdersScreen() {
       >
         <View style={styles.ordersList}>
           {orders.map((order) => (
-            <OrderCard key={order.id} order={order} onCancel={cancelOrder} />
+            <OrderCard key={order.id} order={order} onCancel={attemptCancel} />
           ))}
         </View>
         <View style={{ height: 40 }} />
@@ -88,11 +104,22 @@ export default function OrdersScreen() {
         visible={chatVisible}
         onClose={() => setChatVisible(false)}
       />
+
+      <ConfirmationModal
+        visible={cancelModalVisible}
+        title="Cancel Order"
+        message="Are you sure you want to cancel this order? This action cannot be undone."
+        confirmText="Yes, Cancel"
+        cancelText="No, Keep Order"
+        type="danger"
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setCancelModalVisible(false)}
+      />
     </View>
   );
 }
 
-function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) => Promise<void> }) {
+function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) => void }) {
   const config = STATUS_CONFIG[order.status];
   const Icon = config.icon;
 
@@ -152,20 +179,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
         {order.status === 'pending' ? (
           <TouchableOpacity
             style={styles.cancelBtn}
-            onPress={() => {
-              Alert.alert(
-                "Cancel Order",
-                "Are you sure?",
-                [
-                  { text: "No", style: "cancel" },
-                  {
-                    text: "Yes, Cancel",
-                    style: 'destructive',
-                    onPress: async () => onCancel(order.id)
-                  }
-                ]
-              )
-            }}
+            onPress={() => onCancel(order.id)}
           >
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
