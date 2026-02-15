@@ -1,6 +1,6 @@
 import { db } from '@/config/firebaseConfig';
-import { collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { Order } from '@/types';
+import { collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { Order, OrderStatus } from '@/types';
 import { UserService } from './UserService';
 
 export const OrderService = {
@@ -60,7 +60,7 @@ export const OrderService = {
     updateOrderStatus: async (orderId: string, status: OrderStatus) => {
         try {
             const orderRef = doc(db, 'orders', orderId);
-            const orderSnap = await import('firebase/firestore').then(mod => mod.getDoc(orderRef));
+            const orderSnap = await getDoc(orderRef);
 
             if (!orderSnap.exists()) return;
 
@@ -68,7 +68,7 @@ export const OrderService = {
             const updates: any = { status };
 
             // Check if delivering and points haven't been credited
-            if (status === 'delivered' && !orderData.points_credited && orderData.earned_points > 0) {
+            if (status === 'delivered' && !orderData.points_credited && (orderData.earned_points || 0) > 0) {
                 const user = await UserService.getUser(orderData.user_id);
                 if (user) {
                     await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
@@ -97,8 +97,10 @@ export const OrderService = {
     // Safe update for demo simulation to prevent overwriting 'cancelled' status
     advanceDemoOrderStatus: async (orderId: string, nextStatus: any) => {
         try {
+            console.log(`[OrderService] advanceDemoOrderStatus called for ${orderId} -> ${nextStatus}`);
             const orderRef = doc(db, 'orders', orderId);
-            const orderSnap = await import('firebase/firestore').then(mod => mod.getDoc(orderRef));
+            // Use standard getDoc import
+            const orderSnap = await getDoc(orderRef);
 
             if (orderSnap.exists()) {
                 const orderData = orderSnap.data() as Order;
@@ -112,12 +114,20 @@ export const OrderService = {
                 const updates: any = { status: nextStatus };
 
                 // Credit points on delivery simulation
-                if (nextStatus === 'delivered' && !orderData.points_credited && orderData.earned_points > 0) {
-                    const user = await UserService.getUser(orderData.user_id);
-                    if (user) {
-                        await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
-                        updates.points_credited = true;
-                        console.log(`Credited ${orderData.earned_points} points to user ${orderData.user_id}`);
+                if (nextStatus === 'delivered') {
+                    console.log(`[OrderService] Checking points for order ${orderId}: earned=${orderData.earned_points}, credited=${orderData.points_credited}`);
+                    if (!orderData.points_credited && (orderData.earned_points || 0) > 0) {
+                        const user = await UserService.getUser(orderData.user_id);
+                        if (user) {
+                            const newTotal = (user.wallet_points || 0) + orderData.earned_points;
+                            await UserService.updateWallet(orderData.user_id, newTotal);
+                            updates.points_credited = true;
+                            console.log(`[OrderService] Credited ${orderData.earned_points} points to user ${orderData.user_id}. New total: ${newTotal}`);
+                        } else {
+                            console.error(`[OrderService] User ${orderData.user_id} not found for point crediting`);
+                        }
+                    } else {
+                        console.log(`[OrderService] Skipping point credit. Reason: ${orderData.points_credited ? 'Already credited' : 'Earned points is 0 or undefined'}`);
                     }
                 }
 
@@ -125,6 +135,29 @@ export const OrderService = {
             }
         } catch (error) {
             console.error("Error advancing order status:", error);
+        }
+    },
+
+    ensurePointsCredited: async (orderId: string) => {
+        try {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnap = await getDoc(orderRef);
+
+            if (orderSnap.exists()) {
+                const orderData = orderSnap.data() as Order;
+                if (orderData.status === 'delivered' && !orderData.points_credited && (orderData.earned_points || 0) > 0) {
+                    console.log(`[OrderService] Catch-up crediting points for order ${orderId}`);
+                    const user = await UserService.getUser(orderData.user_id);
+                    if (user) {
+                        const newTotal = (user.wallet_points || 0) + orderData.earned_points;
+                        await UserService.updateWallet(orderData.user_id, newTotal);
+                        await updateDoc(orderRef, { points_credited: true });
+                        console.log(`[OrderService] Catch-up success: Credited ${orderData.earned_points} points.`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error ensuring points credited:", error);
         }
     }
 };

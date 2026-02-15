@@ -1,5 +1,5 @@
 import { db } from '@/config/firebaseConfig';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { UserProfile } from '@/types';
 
 export const UserService = {
@@ -36,6 +36,19 @@ export const UserService = {
             console.error("Error getting user:", error);
             throw error;
         }
+    },
+
+    subscribeToUser: (uid: string, callback: (user: UserProfile | null) => void) => {
+        const userRef = doc(db, 'users', uid);
+        return onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                callback(docSnap.data() as UserProfile);
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error("Error subscribing to user:", error);
+        });
     },
 
     updateWallet: async (uid: string, points: number) => {
