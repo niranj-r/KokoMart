@@ -228,7 +228,7 @@ function OrderTimeline({ currentStatus }: { currentStatus: OrderStatus }) {
         }
 
         return (
-          <View key={step.key} style={[styles.stepItem, { width: 60 }]}>
+          <View key={step.key} style={styles.stepItem}>
             <View style={[
               styles.stepDot,
               isActive && styles.stepDotActive,
@@ -247,7 +247,6 @@ function OrderTimeline({ currentStatus }: { currentStatus: OrderStatus }) {
             {index < steps.length - 1 && (
               <View style={[
                 styles.stepConnector,
-                { left: 37, width: 46 }, // Adjusted for smaller width
                 isActive && currentIndex >= allStatuses.indexOf(steps[index + 1].key) && styles.stepConnectorActive
               ]} />
             )}
@@ -412,13 +411,12 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 10,
+    // Removed justifyContent space-between
   },
   stepItem: {
+    flex: 1, // Use flex 1 for equal width distribution
     alignItems: 'center',
-    width: 80,
     position: 'relative',
   },
   stepDot: {
@@ -451,8 +449,8 @@ const styles = StyleSheet.create({
   stepConnector: {
     position: 'absolute',
     top: 6,
-    left: 47, // Half of width (40) + approx dot half (7) 
-    width: 66, // distance to next dot
+    left: '50%', // Start from center of current item
+    width: '100%', // Stretch to center of next item (since width is same)
     height: 2,
     backgroundColor: '#E0E0E0',
     zIndex: 1,

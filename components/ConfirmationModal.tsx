@@ -54,16 +54,18 @@ export default function ConfirmationModal({
 
     const isDanger = type === 'danger';
     const Icon = isDanger ? AlertTriangle : Info;
-    const iconColor = isDanger ? Colors.priceDown : Colors.deepTeal;
-    const confirmBtnColor = isDanger ? '#FFF5F5' : '#E6F4F1';
-    const confirmTextColor = isDanger ? Colors.priceDown : Colors.deepTeal;
+    // Using Deep Teal theme for danger state as requested
+    const iconColor = Colors.deepTeal;
+    // User requested "Yes, Cancel" to match Checkout button theme (Deep Teal, Filled)
+    const confirmBtnColor = Colors.deepTeal;
+    const confirmTextColor = Colors.white;
 
     return (
         <Modal transparent visible={visible} animationType="none">
             <View style={styles.overlay}>
                 <Animated.View style={[styles.container, { opacity: opacityValue, transform: [{ scale: scaleValue }] }]}>
 
-                    <View style={[styles.iconCircle, { backgroundColor: isDanger ? '#FEF2F2' : '#E0F7FA' }]}>
+                    <View style={[styles.iconCircle, { backgroundColor: Colors.deepTeal + '15' }]}>
                         <Icon size={32} color={iconColor} />
                     </View>
 
@@ -142,8 +144,8 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#EFEFEF',
+        borderWidth: 1.5, // Increased borderWidth slightly for visibility
+        borderColor: Colors.deepTeal, // Updated directly here as requested
         backgroundColor: Colors.white,
     },
     cancelButtonText: {
