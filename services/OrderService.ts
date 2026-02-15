@@ -22,13 +22,13 @@ export const OrderService = {
                 }
             }
 
-            // Add earned points
-            if (orderData.earned_points > 0) {
-                const user = await UserService.getUser(orderData.user_id);
-                if (user) {
-                    await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
-                }
-            }
+            // Points will be credited upon delivery
+            // if (orderData.earned_points > 0) {
+            //     const user = await UserService.getUser(orderData.user_id);
+            //     if (user) {
+            //         await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
+            //     }
+            // }
 
             // Update first order status
             const user = await UserService.getUser(orderData.user_id);
@@ -57,10 +57,26 @@ export const OrderService = {
         }
     },
 
-    updateOrderStatus: async (orderId: string, status: any) => {
+    updateOrderStatus: async (orderId: string, status: OrderStatus) => {
         try {
             const orderRef = doc(db, 'orders', orderId);
-            await updateDoc(orderRef, { status });
+            const orderSnap = await import('firebase/firestore').then(mod => mod.getDoc(orderRef));
+
+            if (!orderSnap.exists()) return;
+
+            const orderData = orderSnap.data() as Order;
+            const updates: any = { status };
+
+            // Check if delivering and points haven't been credited
+            if (status === 'delivered' && !orderData.points_credited && orderData.earned_points > 0) {
+                const user = await UserService.getUser(orderData.user_id);
+                if (user) {
+                    await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
+                    updates.points_credited = true;
+                }
+            }
+
+            await updateDoc(orderRef, updates);
         } catch (error) {
             console.error("Error updating order status:", error);
             throw error;
@@ -82,16 +98,30 @@ export const OrderService = {
     advanceDemoOrderStatus: async (orderId: string, nextStatus: any) => {
         try {
             const orderRef = doc(db, 'orders', orderId);
-            // Transactionless check for simplicity, but reads fresh data
             const orderSnap = await import('firebase/firestore').then(mod => mod.getDoc(orderRef));
 
             if (orderSnap.exists()) {
-                const currentStatus = orderSnap.data().status;
+                const orderData = orderSnap.data() as Order;
+                const currentStatus = orderData.status;
+
                 if (currentStatus === 'cancelled' || currentStatus === 'delivered') {
                     console.log(`Skipping auto-update for order ${orderId} as it is ${currentStatus}`);
                     return;
                 }
-                await updateDoc(orderRef, { status: nextStatus });
+
+                const updates: any = { status: nextStatus };
+
+                // Credit points on delivery simulation
+                if (nextStatus === 'delivered' && !orderData.points_credited && orderData.earned_points > 0) {
+                    const user = await UserService.getUser(orderData.user_id);
+                    if (user) {
+                        await UserService.updateWallet(orderData.user_id, user.wallet_points + orderData.earned_points);
+                        updates.points_credited = true;
+                        console.log(`Credited ${orderData.earned_points} points to user ${orderData.user_id}`);
+                    }
+                }
+
+                await updateDoc(orderRef, updates);
             }
         } catch (error) {
             console.error("Error advancing order status:", error);
