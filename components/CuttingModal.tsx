@@ -9,12 +9,15 @@ import {
 } from 'react-native';
 import Colors from '@/constants/colors';
 import { X } from 'lucide-react-native';
+import { ProductVariant } from '@/types';
 
 interface CuttingModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelect: (cuttingType: string) => void;
+    onSelect: (variantName: string) => void;
     options?: string[];
+    variants?: ProductVariant[]; // Add support for variants
+    title?: string;
 }
 
 const DEFAULT_CUTTING_TYPES = [
@@ -25,8 +28,8 @@ const DEFAULT_CUTTING_TYPES = [
     'Minced (Keema)',
 ];
 
-export default function CuttingModal({ visible, onClose, onSelect, options }: CuttingModalProps) {
-    const cuttingOptions = options && options.length > 0 ? options : DEFAULT_CUTTING_TYPES;
+export default function CuttingModal({ visible, onClose, onSelect, options, variants, title }: CuttingModalProps) {
+    // If variants are provided, use them. Otherwise rely on options or default.
 
     return (
         <Modal
@@ -40,22 +43,37 @@ export default function CuttingModal({ visible, onClose, onSelect, options }: Cu
                     <TouchableWithoutFeedback>
                         <View style={styles.modalContent}>
                             <View style={styles.header}>
-                                <Text style={styles.title}>Select Cutting Type</Text>
+                                <Text style={styles.title}>{title || 'Select Cutting Type'}</Text>
                                 <TouchableOpacity onPress={onClose}>
                                     <X size={24} color={Colors.charcoal} />
                                 </TouchableOpacity>
                             </View>
 
                             <View style={styles.optionsContainer}>
-                                {cuttingOptions.map((type) => (
-                                    <TouchableOpacity
-                                        key={type}
-                                        style={styles.optionButton}
-                                        onPress={() => onSelect(type)}
-                                    >
-                                        <Text style={styles.optionText}>{type}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                                {variants ? (
+                                    variants.map((variant) => (
+                                        <TouchableOpacity
+                                            key={variant.name}
+                                            style={styles.optionButton}
+                                            onPress={() => onSelect(variant.name)}
+                                        >
+                                            <View style={styles.optionRow}>
+                                                <Text style={styles.optionText}>{variant.name}</Text>
+                                                <Text style={styles.optionPrice}>₹{variant.price}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))
+                                ) : (
+                                    (options && options.length > 0 ? options : DEFAULT_CUTTING_TYPES).map((type) => (
+                                        <TouchableOpacity
+                                            key={type}
+                                            style={styles.optionButton}
+                                            onPress={() => onSelect(type)}
+                                        >
+                                            <Text style={styles.optionText}>{type}</Text>
+                                        </TouchableOpacity>
+                                    ))
+                                )}
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
@@ -77,6 +95,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         padding: 24,
         paddingBottom: 40,
+        maxHeight: '80%',
     },
     header: {
         flexDirection: 'row',
@@ -93,16 +112,25 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     optionButton: {
+        padding: 16,
         backgroundColor: Colors.creamLight,
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        borderRadius: 16,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: Colors.cream,
     },
     optionText: {
         fontSize: 16,
-        fontWeight: '600',
+        color: Colors.charcoal,
+        fontWeight: '500',
+    },
+    optionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    optionPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
         color: Colors.charcoal,
     },
 });

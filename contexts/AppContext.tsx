@@ -166,73 +166,67 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const clearCart = () => setCart([]);
 
   const cartTotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.product.current_price * item.weight * item.quantity, 0);
+    return cart.reduce((total, item) => {
+      let price = item.product.current_price;
+      if (item.product.variants && item.cuttingType) {
+        const variant = item.product.variants.find(v => v.name === item.cuttingType);
+        if (variant) {
+          price = variant.price;
+        }
+      }
+      return total + (price * item.quantity * item.weight);
+    }, 0);
   }, [cart]);
 
   const cartItemCount = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    return cart.reduce((count, item) => count + item.quantity, 0);
   }, [cart]);
 
-  const placeOrder = async (address: string, deliverySlot: string, walletUsed: number) => {
-    const subtotal = cartTotal;
-    const discount = user.is_first_order_completed ? 0 : subtotal * 0.1;
-    const finalAmount = subtotal - discount - walletUsed;
-    const earnedPoints = Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0));
+  const placeOrder = async (address: string, paymentMethod: string, walletUsed: number = 0, note?: string) => {
+    if (!user.id) return;
+    if (walletUsed > user.wallet_points) {
+      throw new Error("Insufficient wallet points");
+    }
 
     try {
-      const orderId = await OrderService.createOrder({
-        user_id: user.id,
-        items: cart.map(item => ({
-          product_id: item.product.id,
-          name: item.product.name,
-          quantity: item.quantity,
-          weight: item.weight,
-          price: item.product.current_price,
-          ...(item.cuttingType ? { cuttingType: item.cuttingType } : {}),
-        })),
-        total_amount: subtotal,
-        discount,
-        wallet_used: walletUsed,
-        final_amount: finalAmount,
-        earned_points: earnedPoints,
-        address,
-        // status and created_at are handled by the service
-      });
+      const subtotal = cartTotal;
+      const discount = 0; // Implement discount logic if needed
+      const finalAmount = subtotal - discount - walletUsed;
+      // Chicken Points: 1 point per 1 kg (total weight)
+      const earnedPoints = Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0));
 
-      const newOrder: Order = {
-        id: orderId,
+      const orderPayload = {
         user_id: user.id,
-        items: cart.map(item => ({
-          product_id: item.product.id,
-          name: item.product.name,
-          quantity: item.quantity,
-          weight: item.weight,
-          price: item.product.current_price,
-          cuttingType: item.cuttingType
-        })),
+        items: cart.map(item => {
+          let price = item.product.current_price;
+          if (item.product.variants && item.cuttingType) {
+            const variant = item.product.variants.find(v => v.name === item.cuttingType);
+            if (variant) price = variant.price;
+          }
+          return {
+            product_id: item.product.id,
+            name: item.product.name,
+            quantity: item.quantity,
+            weight: item.weight,
+            price: price,
+            ...(item.cuttingType ? { cuttingType: item.cuttingType } : {}),
+          };
+        }),
         total_amount: subtotal,
         discount,
         wallet_used: walletUsed,
         final_amount: finalAmount,
         earned_points: earnedPoints,
-        status: 'pending',
-        created_at: Date.now(),
         address,
+        note,
       };
 
-      // setOrders((prev: Order[]) => [newOrder, ...prev]); // Subscription handles this!
-
-      if (!user.is_first_order_completed) {
-        setUser((prev: User) => ({ ...prev, is_first_order_completed: true }));
-      }
-
-      if (walletUsed > 0) {
-        setUser((prev: User) => ({ ...prev, wallet_points: prev.wallet_points - walletUsed }));
-      }
+      const orderId = await OrderService.createOrder(orderPayload);
 
       // Update address if it's new/changed
       if (address && address !== user.address) {
         await UserService.updateUser(user.id, { address });
+        // Optimistic update
         setUser((prev: User) => ({ ...prev, address }));
       }
 

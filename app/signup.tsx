@@ -9,7 +9,8 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User, ArrowRight, Phone, MapPin } from 'lucide-react-native';
@@ -66,7 +67,7 @@ export default function SignupScreen() {
                 style={styles.keyboardView}
             >
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <Text style={styles.logo}>Meat UP</Text>
+                    <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
                     <Text style={styles.tagline}>Create Your Account</Text>
 
                     <View style={styles.form}>
@@ -248,11 +249,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     logo: {
-        fontSize: 36,
-        fontWeight: 'bold',
-        color: Colors.orange,
-        textAlign: 'center',
-        marginBottom: 8,
+        width: 180,
+        height: 100,
+        resizeMode: 'contain',
+        alignSelf: 'center',
+        marginBottom: 20,
     },
     tagline: {
         fontSize: 16,
