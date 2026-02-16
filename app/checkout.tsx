@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck } from 'lucide-react-native';
+import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
@@ -43,10 +43,19 @@ export default function CheckoutScreen() {
   const taxRate = 0; // 0% for now
   const taxAmount = cartTotal * taxRate;
 
-  const maxWalletRedemption = Math.min(user.wallet_points, cartTotal - firstOrderDiscount + taxAmount);
+  // Delivery Charge Calculation
+  const freeDistance = 7.5;
+  const ratePerKm = 3;
+  let deliveryCharge = 0;
+
+  if (deliveryDistance && deliveryDistance > freeDistance) {
+    deliveryCharge = Math.ceil((deliveryDistance - freeDistance) * ratePerKm);
+  }
+
+  const maxWalletRedemption = Math.min(user.wallet_points, cartTotal - firstOrderDiscount + taxAmount + deliveryCharge);
   const walletDeduction = useWalletPoints ? maxWalletRedemption : 0;
 
-  const finalTotal = Math.max(0, cartTotal + taxAmount - firstOrderDiscount - walletDeduction);
+  const finalTotal = Math.max(0, cartTotal + taxAmount + deliveryCharge - firstOrderDiscount - walletDeduction);
 
   useEffect(() => {
     // Attempt to get location on mount if address is empty or just to check
@@ -192,7 +201,7 @@ export default function CheckoutScreen() {
       : 'Standard Delivery';
 
     try {
-      const result = await placeOrder(address, slotString, walletDeduction, note);
+      const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge);
       if (!result) throw new Error("Order placement failed");
 
       const { display_id } = result;
@@ -233,6 +242,22 @@ export default function CheckoutScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+
+        {/* First Order Discount Banner */}
+        {firstOrderDiscount > 0 && (
+          <View style={styles.discountBanner}>
+            <View style={styles.discountIconContainer}>
+              <TicketPercent size={24} color={Colors.white} />
+            </View>
+            <View style={styles.discountContent}>
+              <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
+              <Text style={styles.discountSubtitle}>
+                You'll save 10% on this order as a welcome gift.
+              </Text>
+            </View>
+            <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
+          </View>
+        )}
 
         {/* 2. Unified Delivery Card */}
         <View style={styles.sectionContainer}>
@@ -373,6 +398,13 @@ export default function CheckoutScreen() {
               <Text style={styles.summaryValue}>+₹{taxAmount.toFixed(2)}</Text>
             </View>
 
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Delivery Charge</Text>
+              <Text style={[styles.summaryValue, deliveryCharge === 0 && { color: Colors.priceUp }]}>
+                {deliveryCharge === 0 ? 'Free' : `+₹${deliveryCharge.toFixed(2)}`}
+              </Text>
+            </View>
+
             {firstOrderDiscount > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, { color: Colors.priceUp }]}>New User Discount</Text>
@@ -468,6 +500,46 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 30, // Spacing from header
+  },
+
+  discountBanner: {
+    backgroundColor: Colors.deepTealDark,
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: Colors.deepTeal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  discountIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  discountContent: {
+    flex: 1,
+  },
+  discountTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.white,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  discountSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 18,
   },
 
   // Section Styles

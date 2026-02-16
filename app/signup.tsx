@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { Mail, Lock, User, ArrowRight, Phone, MapPin } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
+import StatusBanner from '@/components/StatusBanner';
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -36,13 +37,19 @@ export default function SignupScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Banner State
+    const [bannerVisible, setBannerVisible] = useState(false);
+    const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
+    const [bannerMessage, setBannerMessage] = useState('');
+
     const handleSignup = async () => {
         if (!name || !email || !password || !phone || !houseDetails || !landmark || !place || !city || !pincode) {
-            // Basic validation
+            showBanner('error', 'Please fill in all fields.');
             return;
         }
 
         if (password !== confirmPassword) {
+            showBanner('error', 'Passwords do not match.');
             return;
         }
 
@@ -51,17 +58,35 @@ export default function SignupScreen() {
         const formattedAddress = `${houseDetails}, ${landmark}, ${place}, ${city}, ${state} - ${pincode}`;
 
         try {
-            await signUp(email, password, name, phone, formattedAddress);
-            router.replace('/(tabs)');
-        } catch (e) {
-            // Error handled in AuthContext
+            await signUp(email, password, name, phone, formattedAddress, true); // Silent sign-up
+            showBanner('success', 'Account created successfully!');
+            setTimeout(() => {
+                router.replace('/(tabs)');
+            }, 1500);
+        } catch (e: any) {
+            let msg = "Failed to sign up.";
+            if (e.code === 'auth/email-already-in-use') msg = "Email already in use.";
+            if (e.code === 'auth/weak-password') msg = "Password is too weak.";
+            showBanner('error', msg);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const showBanner = (type: 'success' | 'error', message: string) => {
+        setBannerType(type);
+        setBannerMessage(message);
+        setBannerVisible(true);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBanner
+                visible={bannerVisible}
+                type={bannerType}
+                message={bannerMessage}
+                onClose={() => setBannerVisible(false)}
+            />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}

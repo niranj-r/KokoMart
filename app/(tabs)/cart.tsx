@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react-native';
+import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, TicketPercent, Sparkles } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 
@@ -70,7 +70,16 @@ export default function CartScreen() {
       >
         {!user.is_first_order_completed && (
           <View style={styles.discountBanner}>
-            <Text style={styles.discountText}>🎉 First Order: 10% Discount Applied!</Text>
+            <View style={styles.discountIconContainer}>
+              <TicketPercent size={24} color={Colors.white} />
+            </View>
+            <View style={styles.discountContent}>
+              <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
+              <Text style={styles.discountSubtitle}>
+                You'll save 10% on this order as a welcome gift.
+              </Text>
+            </View>
+            <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
           </View>
         )}
 
@@ -264,16 +273,43 @@ const styles = StyleSheet.create({
 
   // Discount Banner
   discountBanner: {
-    backgroundColor: Colors.priceUp,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
+    backgroundColor: Colors.deepTealDark,
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: Colors.deepTeal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  discountText: {
+  discountIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  discountContent: {
+    flex: 1,
+  },
+  discountTitle: {
+    fontSize: 16,
+    fontWeight: '800',
     color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 14,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  discountSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 18,
   },
 
   // Cart Items

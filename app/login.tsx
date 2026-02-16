@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
+import StatusBanner from '@/components/StatusBanner';
 export default function LoginScreen() {
     const router = useRouter();
     const { signIn } = useAuth();
@@ -22,21 +23,49 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Banner State
+    const [bannerVisible, setBannerVisible] = useState(false);
+    const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
+    const [bannerMessage, setBannerMessage] = useState('');
+
     const handleLogin = async () => {
-        if (!email || !password) return;
+        if (!email || !password) {
+            showBanner('error', 'Please enter both email and password.');
+            return;
+        }
         setIsLoading(true);
         try {
-            await signIn(email, password);
-            router.replace('/(tabs)');
-        } catch (e) {
-            // Error is handled in AuthContext (Alert)
+            await signIn(email, password, true); // Silent sign-in
+            showBanner('success', 'Logged in successfully');
+
+            // Delay navigation slightly to let user see the success banner
+            setTimeout(() => {
+                router.replace('/(tabs)');
+            }, 1500);
+        } catch (e: any) {
+            let msg = "Failed to sign in.";
+            if (e.code === 'auth/invalid-credential') msg = "Invalid email or password.";
+            if (e.code === 'auth/invalid-email') msg = "Invalid email address.";
+            showBanner('error', msg);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const showBanner = (type: 'success' | 'error', message: string) => {
+        setBannerType(type);
+        setBannerMessage(message);
+        setBannerVisible(true);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBanner
+                visible={bannerVisible}
+                type={bannerType}
+                message={bannerMessage}
+                onClose={() => setBannerVisible(false)}
+            />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}

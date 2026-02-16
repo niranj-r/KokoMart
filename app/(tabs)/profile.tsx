@@ -27,6 +27,7 @@ import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import StatusBanner from '@/components/StatusBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -42,6 +43,11 @@ export default function ProfileScreen() {
   const [editPhone, setEditPhone] = React.useState(user.phone);
   const [editAddress, setEditAddress] = React.useState(user.address || '');
 
+  // Banner State
+  const [bannerVisible, setBannerVisible] = React.useState(false);
+  const [bannerType, setBannerType] = React.useState<'success' | 'error'>('success');
+  const [bannerMessage, setBannerMessage] = React.useState('');
+
   React.useEffect(() => {
     setEditName(user.name);
     setEditPhone(user.phone);
@@ -51,8 +57,21 @@ export default function ProfileScreen() {
   const isGuest = user.id === '1' || !user.email;
 
   const handleLogout = async () => {
-    await logout();
-    router.replace('/');
+    try {
+      await logout(true); // Silent logout
+      showBanner('success', 'Logged out successfully');
+      setTimeout(() => {
+        router.replace('/');
+      }, 1500);
+    } catch (e) {
+      showBanner('error', 'Failed to log out.');
+    }
+  };
+
+  const showBanner = (type: 'success' | 'error', message: string) => {
+    setBannerType(type);
+    setBannerMessage(message);
+    setBannerVisible(true);
   };
 
   const handleSaveProfile = async () => {
@@ -137,6 +156,12 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       {/* Top Header Section */}
+      <StatusBanner
+        visible={bannerVisible}
+        type={bannerType}
+        message={bannerMessage}
+        onClose={() => setBannerVisible(false)}
+      />
       <View style={[styles.headerBg, { paddingTop: insets.top }]}>
         <View style={styles.headerTopRow}>
           <Text style={styles.screenTitle}>Profile</Text>
