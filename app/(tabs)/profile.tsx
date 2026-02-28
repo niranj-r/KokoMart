@@ -204,7 +204,7 @@ export default function ProfileScreen() {
             <View>
               <Text style={styles.cardLabel}>Member Card</Text>
               <Text style={styles.cardPoints}>{user.wallet_points}</Text>
-              <Text style={styles.cardPointsLabel}>Chicken Points</Text>
+              <Text style={styles.cardPointsLabel}>Meat Points</Text>
             </View>
             <View style={styles.cardIconContainer}>
               <Image source={require('../../assets/images/cp-profile.png')} style={styles.cardIcon} resizeMode="contain" />
@@ -464,8 +464,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardIcon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
   },
   cardFooter: {
     borderTopWidth: 1,

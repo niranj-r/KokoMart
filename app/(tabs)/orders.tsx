@@ -185,7 +185,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
           </TouchableOpacity>
         ) : order.status === 'delivered' ? (
           <View style={styles.pointsBadge}>
-            <Image source={require('../../assets/images/cp.png')} style={{ width: 16, height: 16 }} />
+            <Image source={require('../../assets/images/cp-profile.png')} style={{ width: 16, height: 16 }} />
             <Text style={styles.pointsText}>+{order.earned_points} pts</Text>
           </View>
         ) : null}
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.orange,
+    color: Colors.deepTeal,
   },
   supportButton: {
     width: 40,
