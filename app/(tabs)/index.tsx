@@ -274,8 +274,8 @@ function ProductCard({
   const getOptions = () => {
     if (product.unit === 'kg') return [0.5, 1, 2];
     if (product.unit === 'g') return [250, 500, 1000];
-    if (product.unit === 'pc' || product.unit === 'pack') return [1, 2, 4];
-    return [1, 2, 5];
+    if (product.unit === 'PC' || product.unit === 'pack') return [1, 2];
+    return [1, 2, 4];
   };
 
   const options = getOptions();

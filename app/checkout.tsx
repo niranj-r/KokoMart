@@ -49,8 +49,8 @@ export default function CheckoutScreen() {
   const taxAmount = cartTotal * taxRate;
 
   // Delivery Charge Calculation
-  const freeDistance = 7.5;
-  const ratePerKm = 3;
+  const freeDistance = 7;
+  const ratePerKm = 5;
   let deliveryCharge = 0;
 
   if (deliveryDistance && deliveryDistance > freeDistance) {

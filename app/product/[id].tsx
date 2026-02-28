@@ -19,7 +19,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { products, addToCart } = useApp();
-  const [selectedWeight, setSelectedWeight] = useState(1);
+  const [selectedWeight, setSelectedWeight] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -41,8 +41,13 @@ export default function ProductDetailScreen() {
         : Colors.priceNeutral;
 
   const Icon = product.price_direction === 'up' ? TrendingUp : TrendingDown;
-  const totalPrice = product.current_price * selectedWeight * quantity;
-  const earnPoints = Math.floor(selectedWeight * quantity);
+  const isPcUnit = product.unit === 'PC' || product.unit === 'pack';
+  const weightOptions = isPcUnit ? [15, 30] : [0.5, 1, 2, 3, 4];
+  const defaultWeight = weightOptions[0];
+  const effectiveWeight = selectedWeight ?? defaultWeight;
+
+  const totalPrice = product.current_price * effectiveWeight * quantity;
+  const earnPoints = Math.floor(effectiveWeight * quantity);
 
   const handleAddToCartRequest = () => {
     setModalVisible(true);
@@ -50,7 +55,7 @@ export default function ProductDetailScreen() {
 
   const handleCuttingTypeSelect = (cuttingType: string) => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(product.id, 1, selectedWeight, cuttingType);
+      addToCart(product.id, 1, effectiveWeight, cuttingType);
     }
     setModalVisible(false);
     router.back();
@@ -116,26 +121,26 @@ export default function ProductDetailScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Weight</Text>
+            <Text style={styles.sectionTitle}>Select {isPcUnit ? 'Quantity' : 'Weight'}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weightOptions}>
-              {[0.5, 1, 2, 3, 4].map((weight) => (
+              {weightOptions.map((weight) => (
                 <TouchableOpacity
                   key={weight}
                   style={[
                     styles.weightOption,
-                    selectedWeight === weight && styles.weightOptionActive,
+                    effectiveWeight === weight && styles.weightOptionActive,
                   ]}
                   onPress={() => setSelectedWeight(weight)}
                 >
                   <Text
                     style={[
                       styles.weightOptionText,
-                      selectedWeight === weight && styles.weightOptionTextActive,
+                      effectiveWeight === weight && styles.weightOptionTextActive,
                     ]}
                   >
-                    {weight} kg
+                    {weight} {isPcUnit ? 'pc' : 'kg'}
                   </Text>
-                  {selectedWeight === weight && <View style={styles.activeDot} />}
+                  {effectiveWeight === weight && <View style={styles.activeDot} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
