@@ -293,7 +293,7 @@ function ProductCard({
           </View>
         </View>
 
-        <Text style={styles.cardDesc} numberOfLines={2}>{product.description}</Text>
+        <Text style={styles.cardDesc} numberOfLines={1}>{product.description}</Text>
 
         {/* Variant Selector */}
         <View style={styles.variantContainer}>

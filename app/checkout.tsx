@@ -416,7 +416,7 @@ export default function CheckoutScreen() {
             <View style={styles.card}>
               <View style={styles.walletHeader}>
                 <View>
-                  <Text style={styles.cardLabel}>Chicken Points</Text>
+                  <Text style={styles.cardLabel}>Meat Points</Text>
                   <Text style={styles.walletPoints}>{user.wallet_points}</Text>
                   <Text style={styles.walletSub}>Available Balance</Text>
                 </View>

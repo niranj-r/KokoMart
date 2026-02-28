@@ -146,7 +146,7 @@ export default function CartScreen() {
           <View style={styles.pointsBadge}>
             <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
             <Text style={styles.pointsText}>
-              You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0))}</Text> Chicken Points
+              You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0))}</Text> Meat Points
             </Text>
           </View>
         </View>

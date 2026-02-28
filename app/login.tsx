@@ -72,7 +72,7 @@ export default function LoginScreen() {
             >
                 <View style={styles.content}>
                     <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
-                    <Text style={styles.tagline}>Fresh Chicken, Delivered.</Text>
+                    <Text style={styles.tagline}>Fresh Meat, Delivered.</Text>
 
                     <View style={styles.form}>
                         <Text style={styles.header}>Welcome Back</Text>

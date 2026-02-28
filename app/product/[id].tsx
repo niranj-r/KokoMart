@@ -118,7 +118,7 @@ export default function ProductDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Select Weight</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weightOptions}>
-              {[1, 1.5, 2, 2.5, 3, 5].map((weight) => (
+              {[0.5, 1, 2, 3, 4].map((weight) => (
                 <TouchableOpacity
                   key={weight}
                   style={[
@@ -170,7 +170,7 @@ export default function ProductDetailScreen() {
             <View>
               <Text style={styles.rewardTitle}>Premium Rewards</Text>
               <Text style={styles.rewardText}>
-                Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Chicken Points</Text>
+                Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
               </Text>
             </View>
           </View>
@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   rewardIcon: {
-    width: 32,
-    height: 32,
+    width: 25,
+    height: 25,
   },
   rewardTitle: {
     fontSize: 16,
