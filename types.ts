@@ -78,4 +78,6 @@ export interface Order {
     delivery_slot?: string;
     note?: string;
     display_id?: string;
+    payment_id?: string;
+    razorpay_order_id?: string;
 }

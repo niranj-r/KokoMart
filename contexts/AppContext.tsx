@@ -176,7 +176,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return cart.reduce((count, item) => count + item.quantity, 0);
   }, [cart]);
 
-  const placeOrder = async (address: string, deliverySlot: string, walletUsed: number = 0, note?: string, deliveryCharge: number = 0) => {
+  const placeOrder = async (
+    address: string,
+    deliverySlot: string,
+    walletUsed: number = 0,
+    note?: string,
+    deliveryCharge: number = 0,
+    paymentDetails?: { payment_id: string; razorpay_order_id: string }
+  ) => {
     if (!user.id) return;
     if (walletUsed > user.wallet_points) {
       throw new Error("Insufficient wallet points");
@@ -220,6 +227,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
         address,
         delivery_slot: deliverySlot,
         note,
+        ...(paymentDetails ? {
+          payment_id: paymentDetails.payment_id,
+          razorpay_order_id: paymentDetails.razorpay_order_id
+        } : {})
       };
 
       const result = await OrderService.createOrder(orderPayload);

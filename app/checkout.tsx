@@ -21,6 +21,8 @@ import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { calculateDistance, calculateDeliveryTime, STORE_LOCATION } from '@/utils/locationUtils';
 import OrderSuccessModal from '@/components/OrderSuccessModal';
+import RazorpayCheckoutGateway from '@/components/RazorpayCheckoutGateway';
+import { encode } from 'base-64';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -31,6 +33,9 @@ export default function CheckoutScreen() {
   const [note, setNote] = useState('');
   const [orderSuccessVisible, setOrderSuccessVisible] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [showRazorpayGateway, setShowRazorpayGateway] = useState(false);
+  const [currentRazorpayOrderId, setCurrentRazorpayOrderId] = useState('');
 
   const [locationLoading, setLocationLoading] = useState(false);
   const [deliveryDistance, setDeliveryDistance] = useState<number | null>(null);
@@ -200,15 +205,84 @@ export default function CheckoutScreen() {
       ? `Within ${deliveryTime} mins`
       : 'Standard Delivery';
 
+    if (paymentMethod === 'cod') {
+      try {
+        const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge);
+        if (!result) throw new Error("Order placement failed");
+
+        const { display_id } = result;
+        setPlacedOrderId(display_id);
+        setOrderSuccessVisible(true);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to place order. Please try again.');
+        console.error(error);
+      }
+    } else {
+      // Razorpay Online Payment Flow - Direct Client-Side API Call
+      try {
+        const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '';
+        const RAZORPAY_KEY_SECRET = process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '';
+
+        const basicAuth = encode(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
+
+        // 1. Call Razorpay API directly from the client
+        const response = await fetch('https://api.razorpay.com/v1/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${basicAuth}`,
+          },
+          body: JSON.stringify({
+            amount: Math.round(finalTotal * 100), // convert to paise
+            currency: 'INR',
+            receipt: `receipt_order_${Date.now()}`
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Razorpay API Error Response:", errorData);
+          throw new Error("Failed to create order on Razorpay");
+        }
+
+        const orderRes = await response.json();
+        const razorpayOrderId = orderRes.id;
+
+        // 2. Open WebView Gateway
+        setCurrentRazorpayOrderId(razorpayOrderId);
+        setShowRazorpayGateway(true);
+
+      } catch (error) {
+        Alert.alert('Error', 'Failed to initiate payment. Please try again.');
+        console.error("Razorpay Error:", error);
+      }
+    }
+  };
+
+  const handleRazorpaySuccess = async (data: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+    setShowRazorpayGateway(false);
+
+    // Create actual order in Firebase now that payment succeeded
+    const slotString = deliveryTime
+      ? `Within ${deliveryTime} mins`
+      : 'Standard Delivery';
+
     try {
-      const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge);
+      const paymentDetails = {
+        payment_id: data.razorpay_payment_id,
+        razorpay_order_id: data.razorpay_order_id,
+        signature: data.razorpay_signature // can be saved if needed
+      };
+
+      const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge, paymentDetails);
       if (!result) throw new Error("Order placement failed");
 
       const { display_id } = result;
       setPlacedOrderId(display_id);
       setOrderSuccessVisible(true);
     } catch (error) {
-      Alert.alert('Error', 'Failed to place order. Please try again.');
+      Alert.alert('Payment Verified but Order Failed', 'Please contact support with your Payment ID.');
+      console.error(error);
     }
   };
 
@@ -426,9 +500,43 @@ export default function CheckoutScreen() {
               <Text style={styles.totalValue}>₹{finalTotal.toFixed(2)}</Text>
             </View>
 
-            <View style={styles.codBadge}>
-              <CheckCircle2 size={12} color={Colors.deepTeal} />
-              <Text style={styles.codText}>Cash on Delivery</Text>
+            <View style={{ marginTop: 20 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.charcoal, marginBottom: 12 }}>Pay Via</Text>
+
+              <TouchableOpacity
+                style={[
+                  styles.paymentMethodCard,
+                  paymentMethod === 'online' && styles.paymentMethodCardActive
+                ]}
+                onPress={() => setPaymentMethod('online')}
+              >
+                <View style={[styles.radioCircle, paymentMethod === 'online' && styles.radioCircleActive]}>
+                  {paymentMethod === 'online' && <View style={styles.radioInner} />}
+                </View>
+                <Wallet size={20} color={paymentMethod === 'online' ? Colors.deepTeal : '#888'} />
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={[styles.pmTitle, paymentMethod === 'online' && styles.pmTitleActive]}>Pay Online</Text>
+                  <Text style={styles.pmSub}>UPI, Cards, Wallets, NetBanking</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.paymentMethodCard,
+                  paymentMethod === 'cod' && styles.paymentMethodCardActive,
+                  { marginTop: 12 }
+                ]}
+                onPress={() => setPaymentMethod('cod')}
+              >
+                <View style={[styles.radioCircle, paymentMethod === 'cod' && styles.radioCircleActive]}>
+                  {paymentMethod === 'cod' && <View style={styles.radioInner} />}
+                </View>
+                <CheckCircle2 size={20} color={paymentMethod === 'cod' ? Colors.deepTeal : '#888'} />
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={[styles.pmTitle, paymentMethod === 'cod' && styles.pmTitleActive]}>Cash on Delivery</Text>
+                  <Text style={styles.pmSub}>Pay cash at the time of delivery</Text>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -453,6 +561,22 @@ export default function CheckoutScreen() {
         onTrackOrder={handleTrackOrder}
         onContinueShopping={handleContinueShopping}
       />
+
+      {showRazorpayGateway && (
+        <RazorpayCheckoutGateway
+          amount={finalTotal}
+          orderId={currentRazorpayOrderId}
+          name={user.name || 'Meat UP Customer'}
+          email={user.email || 'customer@meatup.com'}
+          contact={user.phone || '9999999999'}
+          onSuccess={handleRazorpaySuccess}
+          onClose={() => setShowRazorpayGateway(false)}
+          onError={(errorMsg) => {
+            setShowRazorpayGateway(false);
+            Alert.alert('Payment Initialization Failed', errorMsg || 'An unknown error occurred with Razorpay.');
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -838,4 +962,49 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  paymentMethodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#eee',
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+  },
+  paymentMethodCardActive: {
+    borderColor: Colors.deepTeal,
+    backgroundColor: Colors.deepTeal.substring(0, 7) + '08',
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  radioCircleActive: {
+    borderColor: Colors.deepTeal,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.deepTeal,
+  },
+  pmTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  pmTitleActive: {
+    color: Colors.deepTeal,
+  },
+  pmSub: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  }
 });

@@ -1,0 +1,65 @@
+[debug] [2026-02-28T08:28:14.299Z] ----------------------------------------------------------------------
+[debug] [2026-02-28T08:28:14.304Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\hp\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions --debug
+[debug] [2026-02-28T08:28:14.305Z] CLI Version:   15.8.0
+[debug] [2026-02-28T08:28:14.305Z] Platform:      win32
+[debug] [2026-02-28T08:28:14.306Z] Node Version:  v22.14.0
+[debug] [2026-02-28T08:28:14.306Z] Time:          Sat Feb 28 2026 13:58:14 GMT+0530 (India Standard Time)
+[debug] [2026-02-28T08:28:14.307Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-28T08:28:16.923Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-28T08:28:16.925Z] > authorizing via signed-in user (nikhilbabu106@gmail.com)
+[debug] [2026-02-28T08:28:16.926Z] [iam] checking project meatup-f8c49 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-02-28T08:28:16.928Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:16.929Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:16.931Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49:testIamPermissions [none]
+[debug] [2026-02-28T08:28:16.931Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49:testIamPermissions  x-goog-user-project=meatup-f8c49
+[debug] [2026-02-28T08:28:16.932Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-02-28T08:28:18.636Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49:testIamPermissions 200
+[debug] [2026-02-28T08:28:18.637Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-02-28T08:28:18.637Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:18.638Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:18.638Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/meatup-f8c49/serviceAccounts/meatup-f8c49@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-02-28T08:28:18.638Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/meatup-f8c49/serviceAccounts/meatup-f8c49@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-02-28T08:28:20.203Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/meatup-f8c49/serviceAccounts/meatup-f8c49@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-02-28T08:28:20.203Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/meatup-f8c49/serviceAccounts/meatup-f8c49@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'meatup-f8c49'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-02-28T08:28:20.209Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:20.209Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:20.209Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49 [none]
+[debug] [2026-02-28T08:28:20.672Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49 200
+[debug] [2026-02-28T08:28:20.672Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/meatup-f8c49 {"projectNumber":"270170795022","projectId":"meatup-f8c49","lifecycleState":"ACTIVE","name":"MeatUp","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-02-07T14:43:06.034165Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[debug] [2026-02-28T08:28:20.676Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:20.676Z] Checked if tokens are valid: true, expires at: 1772270754253
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-02-28T08:28:20.677Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:20.677Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:20.677Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/cloudbuild.googleapis.com [none]
+[debug] [2026-02-28T08:28:20.677Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/cloudbuild.googleapis.com  x-goog-user-project=meatup-f8c49
+[debug] [2026-02-28T08:28:20.680Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com [none]
+[debug] [2026-02-28T08:28:20.680Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com  x-goog-user-project=meatup-f8c49
+[debug] [2026-02-28T08:28:22.377Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/cloudbuild.googleapis.com 200
+[debug] [2026-02-28T08:28:22.377Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/cloudbuild.googleapis.com [omitted]
+[warn] !  functions: missing required API cloudbuild.googleapis.com. Enabling now... 
+[debug] [2026-02-28T08:28:22.378Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:22.378Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:22.378Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/cloudbuild.googleapis.com:enable [none]
+[debug] [2026-02-28T08:28:22.378Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/cloudbuild.googleapis.com:enable  x-goog-user-project=meatup-f8c49
+[debug] [2026-02-28T08:28:22.389Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com 200
+[debug] [2026-02-28T08:28:22.390Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com [omitted]
+[warn] !  artifactregistry: missing required API artifactregistry.googleapis.com. Enabling now... 
+[debug] [2026-02-28T08:28:22.390Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:22.390Z] Checked if tokens are valid: true, expires at: 1772270754253
+[debug] [2026-02-28T08:28:22.390Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com:enable [none]
+[debug] [2026-02-28T08:28:22.390Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com:enable  x-goog-user-project=meatup-f8c49
+[debug] [2026-02-28T08:28:22.746Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com:enable 400
+[debug] [2026-02-28T08:28:22.746Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/meatup-f8c49/services/artifactregistry.googleapis.com:enable [omitted]
+[error] 
+[error] Error: Your project meatup-f8c49 must be on the Blaze (pay-as-you-go) plan to complete this command. Required API artifactregistry.googleapis.com can't be enabled until the upgrade is complete. To upgrade, visit the following URL:
+
+https://console.firebase.google.com/project/meatup-f8c49/usage/details
