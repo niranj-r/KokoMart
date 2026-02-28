@@ -19,6 +19,7 @@ import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
 import CuttingModal from '@/components/CuttingModal';
+import { getNextAvailableDay } from '@/utils/getNextAvailableDay';
 
 const { width } = Dimensions.get('window');
 
@@ -69,9 +70,17 @@ export default function HomeScreen() {
     }
   }, [products]);
 
-  const filteredProducts = searchQuery
+  const filteredProducts = (searchQuery
     ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : products;
+    : products
+  ).sort((a, b) => {
+    // Out-of-stock always last
+    if (a.availability !== b.availability) return a.availability ? -1 : 1;
+    // Both same availability → sort by display_order (undefined = Infinity)
+    const orderA = a.display_order ?? Infinity;
+    const orderB = b.display_order ?? Infinity;
+    return orderA - orderB;
+  });
 
   const topProducts = products.slice(0, 5); // Show top 5 in ticker
 
@@ -281,8 +290,17 @@ function ProductCard({
   const options = getOptions();
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
-      <Image source={{ uri: product.image }} style={styles.cardImage} resizeMode="cover" />
+    <TouchableOpacity style={[styles.card, !product.availability && styles.cardOutOfStock]} onPress={onPress} activeOpacity={0.9}>
+      <View>
+        <Image source={{ uri: product.image }} style={[styles.cardImage, !product.availability && { opacity: 0.45 }]} resizeMode="cover" />
+        {!product.availability && (
+          <View style={styles.outOfStockOverlay}>
+            <View style={styles.outOfStockBadge}>
+              <Text style={styles.outOfStockBadgeText}>Out of Stock</Text>
+            </View>
+          </View>
+        )}
+      </View>
 
       <View style={styles.cardContent}>
         <View style={styles.cardHeaderRow}>
@@ -300,14 +318,15 @@ function ProductCard({
           {options.map((opt) => {
             const label = (product.unit === 'kg' || product.unit === 'g')
               ? `${opt}${product.unit}`
-              : `${opt * priceQty} ${product.unit}`; // e.g. 1 * 15 eggs = 15 eggs
+              : `${opt * priceQty} ${product.unit}`;
             const isSelected = selectedWeight === opt;
 
             return (
               <TouchableOpacity
                 key={opt}
                 style={[styles.variantChip, isSelected && styles.variantChipActive]}
-                onPress={() => setSelectedWeight(opt)}
+                onPress={() => !product.availability && setSelectedWeight(opt)}
+                disabled={!product.availability}
               >
                 <Text style={[styles.variantText, isSelected && styles.variantTextActive]}>{label}</Text>
               </TouchableOpacity>
@@ -315,8 +334,20 @@ function ProductCard({
           })}
         </View>
 
-        {/* Add Button */}
-        {quantity === 0 ? (
+        {/* Add Button or Out of Stock Message */}
+        {!product.availability ? (
+          <View style={styles.nextAvailableContainer}>
+            <View style={styles.nextAvailableRow}>
+              <View style={styles.nextAvailableDot} />
+              <Text style={styles.nextAvailableLabel}>Next Available</Text>
+            </View>
+            <Text style={styles.nextAvailableValue}>
+              {product.available_days && product.available_days.length > 0
+                ? getNextAvailableDay(product.available_days)
+                : product.next_available || 'Check back soon'}
+            </Text>
+          </View>
+        ) : quantity === 0 ? (
           <TouchableOpacity style={styles.addBtn} onPress={() => onAddToCart(selectedWeight)}>
             <Text style={styles.addBtnText}>ADD</Text>
           </TouchableOpacity>
@@ -501,6 +532,61 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 180,
     backgroundColor: Colors.creamLight,
+  },
+  cardOutOfStock: {
+    opacity: 0.85,
+  },
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outOfStockBadge: {
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  outOfStockBadgeText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  nextAvailableContainer: {
+    backgroundColor: '#FFFBF5',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F3E0C4',
+  },
+  nextAvailableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  nextAvailableDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.orange,
+  },
+  nextAvailableLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.orange,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  nextAvailableValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.charcoal,
   },
   cardContent: {
     padding: 20,

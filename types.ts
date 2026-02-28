@@ -8,6 +8,9 @@ export interface Product {
     price_change_percentage: number;
     image: string;
     availability: boolean;
+    next_available?: string; // e.g. "Tomorrow", "Mon, Mar 3" – shown when availability is false
+    available_days?: number[]; // 0=Sun, 1=Mon, …, 6=Sat – days product is available
+    display_order?: number;    // Lower = shown first in the product list
     description?: string;
     cutting_types?: string[];
     unit: string;

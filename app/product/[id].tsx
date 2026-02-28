@@ -14,6 +14,7 @@ import { TrendingUp, TrendingDown, Minus, Plus, ChevronLeft, ArrowRight } from '
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import CuttingModal from '@/components/CuttingModal';
+import { getNextAvailableDay } from '@/utils/getNextAvailableDay';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -79,8 +80,15 @@ export default function ProductDetailScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} bounces={false}>
         {/* Helper view to maintain aspect ratio or height */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="cover" />
+          <Image source={{ uri: product.image }} style={[styles.productImage, !product.availability && { opacity: 0.45 }]} resizeMode="cover" />
           <View style={styles.imageOverlay} />
+          {!product.availability && (
+            <View style={styles.outOfStockOverlay}>
+              <View style={styles.outOfStockBadge}>
+                <Text style={styles.outOfStockBadgeText}>Out of Stock</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.contentContainer}>
@@ -129,8 +137,10 @@ export default function ProductDetailScreen() {
                   style={[
                     styles.weightOption,
                     effectiveWeight === weight && styles.weightOptionActive,
+                    !product.availability && styles.weightOptionDisabled,
                   ]}
                   onPress={() => setSelectedWeight(weight)}
+                  disabled={!product.availability}
                 >
                   <Text
                     style={[
@@ -187,14 +197,30 @@ export default function ProductDetailScreen() {
 
       <View style={styles.footer}>
         <View style={styles.footerContent}>
-          <View>
-            <Text style={styles.footerLabel}>Total Amount</Text>
-            <Text style={styles.footerPrice}>₹{totalPrice.toFixed(2)}</Text>
-          </View>
-          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCartRequest}>
-            <Text style={styles.addToCartText}>Add to Cart</Text>
-            <ArrowRight size={20} color={Colors.white} />
-          </TouchableOpacity>
+          {product.availability ? (
+            <>
+              <View>
+                <Text style={styles.footerLabel}>Total Amount</Text>
+                <Text style={styles.footerPrice}>₹{totalPrice.toFixed(2)}</Text>
+              </View>
+              <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCartRequest}>
+                <Text style={styles.addToCartText}>Add to Cart</Text>
+                <ArrowRight size={20} color={Colors.white} />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.nextAvailableFooter}>
+              <View style={styles.nextAvailableRow}>
+                <View style={styles.nextAvailableDot} />
+                <Text style={styles.nextAvailableLabel}>Next Available</Text>
+              </View>
+              <Text style={styles.nextAvailableValue}>
+                {product.available_days && product.available_days.length > 0
+                  ? getNextAvailableDay(product.available_days)
+                  : product.next_available || 'Check back soon'}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -250,6 +276,57 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 100,
+  },
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outOfStockBadge: {
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  outOfStockBadgeText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  weightOptionDisabled: {
+    opacity: 0.4,
+  },
+  nextAvailableFooter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  nextAvailableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  nextAvailableDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.orange,
+  },
+  nextAvailableLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.orange,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  nextAvailableValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.charcoal,
   },
   contentContainer: {
     marginTop: -40,
