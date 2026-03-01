@@ -208,13 +208,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
       const orderPayload = {
         user_id: user.id,
         items: cart.map(item => {
-          // ... existing items mapping ...
+          // Use variant price if a variant/cuttingType is selected (e.g. Brown Egg vs White Egg)
+          let itemPrice = item.product.current_price;
+          if (item.product.variants && item.cuttingType) {
+            const variant = item.product.variants.find(v => v.name === item.cuttingType);
+            if (variant) itemPrice = variant.price;
+          }
           return {
             product_id: item.product.id,
             name: item.product.name,
             quantity: item.quantity,
             weight: item.weight,
-            price: item.product.current_price, // simplified for brevity in diff, actual code uses logic
+            price: itemPrice,
             ...(item.cuttingType ? { cuttingType: item.cuttingType } : {}),
           };
         }),

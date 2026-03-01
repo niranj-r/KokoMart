@@ -1,8 +1,31 @@
 /**
+ * Returns true if the product should be shown as available right now.
+ *
+ * Rules (in order):
+ * 1. If `available_days` is set and today is NOT in it → always out of stock (day-based restriction)
+ * 2. If today IS an available day → use the admin-controlled `availability` flag
+ * 3. If `available_days` is not set → fall back to `availability` alone
+ */
+export function isProductAvailableToday(product: {
+    availability: boolean;
+    available_days?: number[];
+}): boolean {
+    const todayDay = new Date().getDay(); // 0=Sun … 6=Sat
+
+    if (product.available_days && product.available_days.length > 0) {
+        const isTodayAnAvailableDay = product.available_days.includes(todayDay);
+        if (!isTodayAnAvailableDay) return false; // blocked by day schedule
+        return product.availability; // admin can still mark it sold-out on an available day
+    }
+
+    return product.availability; // no day restriction → use admin flag only
+}
+
+/**
  * Given an array of available days (0=Sun, 1=Mon, …, 6=Sat),
  * returns a human-friendly string describing the NEXT available date.
  *
- * Today is always skipped (product is already sold out for today),
+ * Today is always skipped (product is sold out / not available today),
  * so a product available every day will show "Tomorrow" when sold out.
  *
  * Examples: "Tomorrow", "This Wednesday", "Sat, Mar 8"
@@ -23,7 +46,7 @@ export function getNextAvailableDay(availableDays: number[]): string {
 
     for (const day of sorted) {
         let daysAhead = (day - todayDay + 7) % 7;
-        // Always skip today — product is sold out, next slot is tomorrow or later
+        // Always skip today — product is sold out / not available today
         if (daysAhead === 0) daysAhead = 7;
         if (daysAhead < minDaysAhead) {
             minDaysAhead = daysAhead;
