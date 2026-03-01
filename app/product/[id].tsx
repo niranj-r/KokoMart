@@ -14,7 +14,7 @@ import { TrendingUp, TrendingDown, Minus, Plus, ChevronLeft, ArrowRight } from '
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import CuttingModal from '@/components/CuttingModal';
-import { getNextAvailableDay } from '@/utils/getNextAvailableDay';
+import { getNextAvailableDay, isProductAvailableToday } from '@/utils/getNextAvailableDay';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -46,6 +46,7 @@ export default function ProductDetailScreen() {
   const weightOptions = isPcUnit ? [15, 30] : [0.5, 1, 2, 3, 4];
   const defaultWeight = weightOptions[0];
   const effectiveWeight = selectedWeight ?? defaultWeight;
+  const availableToday = isProductAvailableToday(product);
 
   const totalPrice = product.current_price * effectiveWeight * quantity;
   const earnPoints = Math.floor(effectiveWeight * quantity);
@@ -80,9 +81,9 @@ export default function ProductDetailScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} bounces={false}>
         {/* Helper view to maintain aspect ratio or height */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={[styles.productImage, !product.availability && { opacity: 0.45 }]} resizeMode="cover" />
+          <Image source={{ uri: product.image }} style={[styles.productImage, !availableToday && { opacity: 0.45 }]} resizeMode="cover" />
           <View style={styles.imageOverlay} />
-          {!product.availability && (
+          {!availableToday && (
             <View style={styles.outOfStockOverlay}>
               <View style={styles.outOfStockBadge}>
                 <Text style={styles.outOfStockBadgeText}>Out of Stock</Text>
@@ -137,10 +138,10 @@ export default function ProductDetailScreen() {
                   style={[
                     styles.weightOption,
                     effectiveWeight === weight && styles.weightOptionActive,
-                    !product.availability && styles.weightOptionDisabled,
+                    !availableToday && styles.weightOptionDisabled,
                   ]}
                   onPress={() => setSelectedWeight(weight)}
-                  disabled={!product.availability}
+                  disabled={!availableToday}
                 >
                   <Text
                     style={[
@@ -197,7 +198,7 @@ export default function ProductDetailScreen() {
 
       <View style={styles.footer}>
         <View style={styles.footerContent}>
-          {product.availability ? (
+          {availableToday ? (
             <>
               <View>
                 <Text style={styles.footerLabel}>Total Amount</Text>

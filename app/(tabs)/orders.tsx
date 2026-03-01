@@ -13,6 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Package, Scissors, Box, Truck, CheckCircle, Clock, ChevronRight, Headset } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
@@ -33,6 +34,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: stri
 
 export default function OrdersScreen() {
   const { orders, cancelOrder } = useApp();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [chatVisible, setChatVisible] = React.useState(false);
   const [cancelModalVisible, setCancelModalVisible] = React.useState(false);
@@ -94,7 +96,12 @@ export default function OrdersScreen() {
       >
         <View style={styles.ordersList}>
           {orders.map((order) => (
-            <OrderCard key={order.id} order={order} onCancel={attemptCancel} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              onCancel={attemptCancel}
+              onPress={() => router.push(`/order/${order.id}` as any)}
+            />
           ))}
         </View>
         <View style={{ height: 40 }} />
@@ -119,15 +126,15 @@ export default function OrdersScreen() {
   );
 }
 
-function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) => void }) {
+function OrderCard({ order, onCancel, onPress }: { order: Order; onCancel: (id: string) => void; onPress: () => void }) {
   const config = STATUS_CONFIG[order.status];
   const Icon = config.icon;
 
   return (
-    <View style={styles.orderCard}>
+    <TouchableOpacity style={styles.orderCard} onPress={onPress} activeOpacity={0.85}>
       {/* Card Header */}
       <View style={styles.cardHeader}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.orderId}>{order.display_id || `ORDER #${order.id.slice(-6).toUpperCase()}`}</Text>
           <Text style={styles.orderDate}>
             {new Date(order.created_at).toLocaleDateString('en-IN', {
@@ -142,6 +149,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
           <Icon size={14} color={config.color} />
           <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
         </View>
+        <ChevronRight size={18} color="#CCC" style={{ marginLeft: 4 }} />
       </View>
 
       <View style={styles.divider} />
@@ -190,7 +198,7 @@ function OrderCard({ order, onCancel }: { order: Order; onCancel: (id: string) =
           </View>
         ) : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

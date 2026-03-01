@@ -19,7 +19,7 @@ import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
 import CuttingModal from '@/components/CuttingModal';
-import { getNextAvailableDay } from '@/utils/getNextAvailableDay';
+import { getNextAvailableDay, isProductAvailableToday } from '@/utils/getNextAvailableDay';
 
 const { width } = Dimensions.get('window');
 
@@ -74,8 +74,10 @@ export default function HomeScreen() {
     ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : products
   ).sort((a, b) => {
+    const aAvail = isProductAvailableToday(a);
+    const bAvail = isProductAvailableToday(b);
     // Out-of-stock always last
-    if (a.availability !== b.availability) return a.availability ? -1 : 1;
+    if (aAvail !== bAvail) return aAvail ? -1 : 1;
     // Both same availability → sort by display_order (undefined = Infinity)
     const orderA = a.display_order ?? Infinity;
     const orderB = b.display_order ?? Infinity;
@@ -290,10 +292,10 @@ function ProductCard({
   const options = getOptions();
 
   return (
-    <TouchableOpacity style={[styles.card, !product.availability && styles.cardOutOfStock]} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity style={[styles.card, !isProductAvailableToday(product) && styles.cardOutOfStock]} onPress={onPress} activeOpacity={0.9}>
       <View>
-        <Image source={{ uri: product.image }} style={[styles.cardImage, !product.availability && { opacity: 0.45 }]} resizeMode="cover" />
-        {!product.availability && (
+        <Image source={{ uri: product.image }} style={[styles.cardImage, !isProductAvailableToday(product) && { opacity: 0.45 }]} resizeMode="cover" />
+        {!isProductAvailableToday(product) && (
           <View style={styles.outOfStockOverlay}>
             <View style={styles.outOfStockBadge}>
               <Text style={styles.outOfStockBadgeText}>Out of Stock</Text>
@@ -335,7 +337,7 @@ function ProductCard({
         </View>
 
         {/* Add Button or Out of Stock Message */}
-        {!product.availability ? (
+        {!isProductAvailableToday(product) ? (
           <View style={styles.nextAvailableContainer}>
             <View style={styles.nextAvailableRow}>
               <View style={styles.nextAvailableDot} />
