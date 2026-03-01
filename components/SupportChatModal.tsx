@@ -133,7 +133,7 @@ export default function SupportChatModal({ visible, onClose }: SupportChatModalP
                     };
                     break;
                 case 'call_action':
-                    Linking.openURL('tel:+919876543210');
+                    Linking.openURL('tel:+918281626692');
                     botResponse = {
                         id: (Date.now() + 1).toString(),
                         text: "Calling support...",
