@@ -1,6 +1,6 @@
 export const STORE_LOCATION = {
-    latitude: 12.9716,
-    longitude: 77.5946,
+    latitude: 8.5408,
+    longitude: 76.9037,
 };
 
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

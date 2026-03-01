@@ -18,7 +18,14 @@ interface AppState {
     removeFromCart: (productId: string, weight: number, cuttingType?: string) => void;
     updateCartItemPrice: (productId: string) => void;
     clearCart: () => void;
-    placeOrder: (address: string, deliverySlot: string, walletUsed?: number, note?: string, deliveryCharge?: number) => Promise<any>;
+    placeOrder: (
+        address: string,
+        deliverySlot: string,
+        walletUsed?: number,
+        note?: string,
+        deliveryCharge?: number,
+        paymentDetails?: { payment_id: string; razorpay_order_id: string }
+    ) => Promise<any>;
     updateUserProfile: (data: Partial<User>) => Promise<void>;
     cancelOrder: (orderId: string) => Promise<void>;
 }
@@ -159,7 +166,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return cart.reduce((count, item) => count + item.quantity, 0);
     }, [cart]);
 
-    const placeOrder = async (address: string, deliverySlot: string, walletUsed = 0, note?: string, deliveryCharge = 0) => {
+    const placeOrder = async (
+        address: string,
+        deliverySlot: string,
+        walletUsed = 0,
+        note?: string,
+        deliveryCharge = 0,
+        paymentDetails?: { payment_id: string; razorpay_order_id: string }
+    ) => {
         if (!user.id) return;
         if (walletUsed > user.wallet_points) throw new Error("Insufficient wallet points");
 
@@ -187,6 +201,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 address,
                 delivery_slot: deliverySlot,
                 note,
+                ...(paymentDetails ? {
+                    payment_id: paymentDetails.payment_id,
+                    razorpay_order_id: paymentDetails.razorpay_order_id,
+                    payment_method: 'online',
+                    is_paid: true
+                } : {
+                    payment_method: 'cod',
+                    is_paid: false
+                })
             };
 
             const result = await OrderService.createOrder(orderPayload);
