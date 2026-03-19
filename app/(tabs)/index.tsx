@@ -51,23 +51,30 @@ export default function HomeScreen() {
   }, [tickerPosition]);
 
   // Data Fix for Eggs (Preserved from previous version)
+  // Data Fix for Eggs (Preserved and updated for specific prices)
   useEffect(() => {
-    const eggProduct = products.find(p => p.name.toLowerCase().includes('egg'));
-    if (eggProduct) {
-      const needsUpdate = !eggProduct.price_quantity || eggProduct.price_quantity === 1 || !eggProduct.variants;
+    const eggProducts = products.filter(p => p.name.toLowerCase().includes('egg'));
+    eggProducts.forEach(product => {
+      const isWhite = product.name.toLowerCase().includes('white');
+      const isBrown = product.name.toLowerCase().includes('brown');
+      const targetPrice = isBrown ? 7 : 6;
+      
+      const needsUpdate = !product.price_quantity || product.price_quantity !== 1 || product.current_price !== targetPrice;
+      
       if (needsUpdate) {
         import('@/services/ProductService').then(({ ProductService }) => {
-          ProductService.updateProduct(eggProduct.id, {
-            price_quantity: 15,
-            unit: 'pc',
+          ProductService.updateProduct(product.id, {
+            price_quantity: 1,
+            current_price: targetPrice,
+            unit: 'Pc',
             variants: [
-              { name: 'White Egg', price: 30 },
-              { name: 'Brown Egg', price: 40 }
+              { name: 'White Egg', price: 6 },
+              { name: 'Brown Egg', price: 7 }
             ]
           });
         });
       }
-    }
+    });
   }, [products]);
 
   const filteredProducts = (searchQuery
@@ -283,9 +290,10 @@ function ProductCard({
   const priceQty = product.price_quantity || 1;
 
   const getOptions = () => {
-    if (product.unit === 'kg') return [0.5, 1, 2];
-    if (product.unit === 'g') return [250, 500, 1000];
-    if (product.unit === 'PC' || product.unit === 'pack') return [1, 2];
+    const unit = product.unit.toUpperCase();
+    if (unit === 'KG') return [0.5, 1, 2];
+    if (unit === 'G') return [250, 500, 1000];
+    if (unit === 'PC' || unit === 'PACK') return [6, 12, 30];
     return [1, 2, 4];
   };
 
@@ -308,8 +316,8 @@ function ProductCard({
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>{product.name}</Text>
           <View style={styles.priceTag}>
-            <Text style={styles.priceTagText}>₹{product.current_price}</Text>
-            <Text style={styles.priceUnit}>/{product.unit}</Text>
+            <Text style={styles.priceTagText}>₹{((product.current_price / priceQty) * selectedWeight).toFixed(0)}</Text>
+            <Text style={styles.priceUnit}>/{selectedWeight}{product.unit.toLowerCase()}</Text>
           </View>
         </View>
 
@@ -318,8 +326,9 @@ function ProductCard({
         {/* Variant Selector */}
         <View style={styles.variantContainer}>
           {options.map((opt) => {
-            const label = (product.unit === 'kg' || product.unit === 'g')
-              ? `${opt}${product.unit}`
+            const unitUpper = product.unit.toUpperCase();
+            const label = (unitUpper === 'KG' || unitUpper === 'G')
+              ? `${opt}${product.unit.toLowerCase()}`
               : `${opt * priceQty} ${product.unit}`;
             const isSelected = selectedWeight === opt;
 
@@ -327,7 +336,7 @@ function ProductCard({
               <TouchableOpacity
                 key={opt}
                 style={[styles.variantChip, isSelected && styles.variantChipActive]}
-                onPress={() => !product.availability && setSelectedWeight(opt)}
+                onPress={() => setSelectedWeight(opt)}
                 disabled={!product.availability}
               >
                 <Text style={[styles.variantText, isSelected && styles.variantTextActive]}>{label}</Text>

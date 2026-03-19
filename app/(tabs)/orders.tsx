@@ -162,7 +162,7 @@ function OrderCard({ order, onCancel, onPress }: { order: Order; onCancel: (id: 
             <Text style={styles.itemText} numberOfLines={1}>
               <Text style={{ fontWeight: '700' }}>{item.quantity}x </Text>
               {item.name}
-              <Text style={{ color: '#888' }}> ({item.weight}kg{item.cuttingType ? ` • ${item.cuttingType}` : ''})</Text>
+              <Text style={{ color: '#888' }}> ({item.weight}{item.unit || 'kg'}{item.cuttingType ? ` • ${item.cuttingType}` : ''})</Text>
             </Text>
           </View>
         ))}

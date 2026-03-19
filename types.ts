@@ -60,6 +60,7 @@ export interface OrderItem {
     name: string;
     quantity: number;
     weight: number;
+    unit: string;
     price: number;
     cuttingType?: string;
 }

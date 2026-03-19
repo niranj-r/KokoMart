@@ -42,8 +42,8 @@ export default function ProductDetailScreen() {
         : Colors.priceNeutral;
 
   const Icon = product.price_direction === 'up' ? TrendingUp : TrendingDown;
-  const isPcUnit = product.unit === 'PC' || product.unit === 'pack';
-  const weightOptions = isPcUnit ? [15, 30] : [0.5, 1, 2, 3, 4];
+  const isPcUnit = product.unit.toLowerCase() === 'pc' || product.unit === 'pack';
+  const weightOptions = isPcUnit ? [6, 12, 30] : [0.5, 1, 2, 3, 4];
   const defaultWeight = weightOptions[0];
   const effectiveWeight = selectedWeight ?? defaultWeight;
   const availableToday = isProductAvailableToday(product);
@@ -107,7 +107,7 @@ export default function ProductDetailScreen() {
               <View style={styles.priceWrapper}>
                 <Text style={styles.currency}>₹</Text>
                 <Text style={styles.currentPrice}>{product.current_price}</Text>
-                <Text style={styles.unit}>/kg</Text>
+                <Text style={styles.unit}>/{product.unit}</Text>
               </View>
 
               {product.price_direction !== 'neutral' && (
@@ -149,7 +149,7 @@ export default function ProductDetailScreen() {
                       effectiveWeight === weight && styles.weightOptionTextActive,
                     ]}
                   >
-                    {weight} {isPcUnit ? 'pc' : 'kg'}
+                    {weight} {isPcUnit ? (product.unit.toLowerCase() === 'pc' ? 'pc' : product.unit) : 'kg'}
                   </Text>
                   {effectiveWeight === weight && <View style={styles.activeDot} />}
                 </TouchableOpacity>
@@ -179,17 +179,24 @@ export default function ProductDetailScreen() {
             </View>
           </View>
 
-          <View style={styles.rewardCard}>
-            <View style={styles.rewardIconContainer}>
-              <Image source={require('../../assets/images/cp.png')} style={styles.rewardIcon} resizeMode="contain" />
-            </View>
-            <View>
-              <Text style={styles.rewardTitle}>Premium Rewards</Text>
-              <Text style={styles.rewardText}>
-                Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
-              </Text>
-            </View>
-          </View>
+          {(() => {
+            const unit = product.unit.toUpperCase();
+            const isMeat = unit === 'KG' || unit === 'G';
+            if (!isMeat) return null;
+            return (
+              <View style={styles.rewardCard}>
+                <View style={styles.rewardIconContainer}>
+                  <Image source={require('../../assets/images/cp.png')} style={styles.rewardIcon} resizeMode="contain" />
+                </View>
+                <View>
+                  <Text style={styles.rewardTitle}>Premium Rewards</Text>
+                  <Text style={styles.rewardText}>
+                    Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
+                  </Text>
+                </View>
+              </View>
+            );
+          })()}
 
           {/* Spacer for bottom bar */}
           <View style={{ height: 100 }} />
@@ -229,6 +236,9 @@ export default function ProductDetailScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
+        options={product.cutting_types}
+        variants={product.variants}
+        title={product.variants ? 'Select Type' : 'Select Cutting Type'}
       />
     </View>
   );

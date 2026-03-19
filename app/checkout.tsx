@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles } from 'lucide-react-native';
+import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles, AlertCircle } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
@@ -45,8 +45,12 @@ export default function CheckoutScreen() {
   const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
 
   // Tax Calculation
-  const taxRate = 0; // 0% for now
+  const taxRate = 0.05; // 5%
   const taxAmount = cartTotal * taxRate;
+
+  // Handling Fee Calculation
+  const handlingFeeRate = 0.03; // 3%
+  const handlingFee = cartTotal * handlingFeeRate;
 
   // Delivery Charge Calculation
   const freeDistance = 7;
@@ -57,10 +61,10 @@ export default function CheckoutScreen() {
     deliveryCharge = Math.ceil((deliveryDistance - freeDistance) * ratePerKm);
   }
 
-  const maxWalletRedemption = Math.min(user.wallet_points, cartTotal - firstOrderDiscount + taxAmount + deliveryCharge);
+  const maxWalletRedemption = Math.min(user.wallet_points, cartTotal - firstOrderDiscount + taxAmount + handlingFee + deliveryCharge);
   const walletDeduction = useWalletPoints ? maxWalletRedemption : 0;
 
-  const finalTotal = Math.max(0, cartTotal + taxAmount + deliveryCharge - firstOrderDiscount - walletDeduction);
+  const finalTotal = Math.max(0, cartTotal + taxAmount + handlingFee + deliveryCharge - firstOrderDiscount - walletDeduction);
 
   useEffect(() => {
     // Attempt to get location on mount if address is empty or just to check
@@ -183,6 +187,11 @@ export default function CheckoutScreen() {
       );
 
       const roadDist = dist * 1.4;
+      if (roadDist > 25) {
+        setDeliveryDistance(parseFloat(roadDist.toFixed(1)));
+        setLocationError('Delivery is restricted to 25km from our store. Please choose a closer location.');
+        return;
+      }
 
       setDeliveryDistance(parseFloat(roadDist.toFixed(1)));
       setDeliveryTime(calculateDeliveryTime(dist));
@@ -198,6 +207,11 @@ export default function CheckoutScreen() {
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
       Alert.alert('Error', 'Please enter delivery address');
+      return;
+    }
+
+    if (!deliveryDistance || deliveryDistance > 25) {
+      Alert.alert('Out of Delivery Range', 'We currently only deliver within 25km of our base location. Please select a closer address.');
       return;
     }
 
@@ -365,7 +379,12 @@ export default function CheckoutScreen() {
                   </>
                 )}
               </TouchableOpacity>
-              {locationError && <Text style={styles.errorText}>{locationError}</Text>}
+              {locationError && (
+                <View style={styles.errorBanner}>
+                  <AlertCircle size={18} color={Colors.priceDown} />
+                  <Text style={styles.errorBannerText}>{locationError}</Text>
+                </View>
+              )}
             </View>
 
             {/* Delivery Estimate Badge */}
@@ -452,10 +471,17 @@ export default function CheckoutScreen() {
                 <Text style={styles.billItemQty}>{item.quantity}x</Text>
                 <View style={{ flex: 1, paddingHorizontal: 10 }}>
                   <Text style={styles.billItemName}>{item.product.name}</Text>
-                  <Text style={styles.billItemMeta}>{item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
+                  <Text style={styles.billItemMeta}>{item.weight} {item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
                 </View>
                 <Text style={styles.billItemPrice}>
-                  ₹{((item.product.current_price) * item.quantity * item.weight).toFixed(2)}
+                  ₹{(() => {
+                    let price = item.product.current_price;
+                    if (item.product.variants && item.cuttingType) {
+                      const variant = item.product.variants.find(v => v.name === item.cuttingType);
+                      if (variant) price = variant.price;
+                    }
+                    return (price * item.quantity * item.weight).toFixed(2);
+                  })()}
                 </Text>
               </View>
             ))}
@@ -470,6 +496,11 @@ export default function CheckoutScreen() {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Tax ({(taxRate * 100).toFixed(0)}%)</Text>
               <Text style={styles.summaryValue}>+₹{taxAmount.toFixed(2)}</Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Handling Fee (3%)</Text>
+              <Text style={styles.summaryValue}>+₹{handlingFee.toFixed(2)}</Text>
             </View>
 
             <View style={styles.summaryRow}>
@@ -546,7 +577,11 @@ export default function CheckoutScreen() {
 
       {/* Floating Footer */}
       <View style={styles.floatFooter}>
-        <TouchableOpacity style={styles.checkoutBtn} onPress={handlePlaceOrder}>
+        <TouchableOpacity 
+          style={[styles.checkoutBtn, (deliveryDistance !== null && deliveryDistance > 25) ? styles.checkoutBtnDisabled : null]} 
+          onPress={handlePlaceOrder}
+          disabled={deliveryDistance !== null && deliveryDistance > 25}
+        >
           <View style={styles.btnContent}>
             <Text style={styles.btnText}>PLACE ORDER</Text>
             <View style={styles.btnDivider} />
@@ -729,10 +764,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.deepTeal,
   },
-  errorText: {
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.priceDown.substring(0, 7) + '10',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.priceDown.substring(0, 7) + '20',
+  },
+  errorBannerText: {
+    flex: 1,
     color: Colors.priceDown,
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 
   // Delivery Info
@@ -939,6 +987,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  checkoutBtnDisabled: {
+    backgroundColor: '#CCCCCC',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   btnContent: {
     flexDirection: 'row',

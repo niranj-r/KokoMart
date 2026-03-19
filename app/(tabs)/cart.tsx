@@ -91,10 +91,17 @@ export default function CartScreen() {
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
                 <Text style={styles.itemVariant}>
-                  {item.weight}kg {item.cuttingType ? `• ${item.cuttingType}` : ''}
+                  {item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}
                 </Text>
                 <Text style={styles.itemPrice}>
-                  ₹{(item.product.current_price * item.weight * item.quantity).toFixed(2)}
+                  ₹{(() => {
+                    let price = item.product.current_price;
+                    if (item.product.variants && item.cuttingType) {
+                      const variant = item.product.variants.find(v => v.name === item.cuttingType);
+                      if (variant) price = variant.price;
+                    }
+                    return (price * item.weight * item.quantity).toFixed(2);
+                  })()}
                 </Text>
               </View>
 
@@ -146,7 +153,11 @@ export default function CartScreen() {
           <View style={styles.pointsBadge}>
             <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
             <Text style={styles.pointsText}>
-              You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0))}</Text> Meat Points
+              You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => {
+                const unit = item.product.unit.toUpperCase();
+                const isMeat = unit === 'KG' || unit === 'G';
+                return isMeat ? sum + item.weight * item.quantity : sum;
+              }, 0))}</Text> Meat Points
             </Text>
           </View>
         </View>
