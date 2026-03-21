@@ -232,14 +232,32 @@ export default function CheckoutScreen() {
         console.error(error);
       }
     } else {
-      // Razorpay Online Payment Flow - Direct Client-Side API Call
+      // Razorpay Online Payment Flow - Direct Client-Side WebView (No Firebase / Expo Go Compatible)
       try {
-        const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '';
-        const RAZORPAY_KEY_SECRET = process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '';
+        const RAZORPAY_KEY_ID = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '').trim();
+        const RAZORPAY_KEY_SECRET = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '').trim();
+
+        if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+          console.error("DEBUG: Razorpay keys are MISSING from process.env.", { 
+            ID_EXISTS: !!RAZORPAY_KEY_ID, 
+            SECRET_EXISTS: !!RAZORPAY_KEY_SECRET 
+          });
+          Alert.alert('Configuration Error', 'Razorpay keys are missing. Please restart your Expo server with --clear.');
+          return;
+        }
+
+        console.log("DEBUG: Key Check", {
+          ID_LEN: RAZORPAY_KEY_ID.length,
+          ID_START: RAZORPAY_KEY_ID.substring(0, 8),
+          SECRET_LEN: RAZORPAY_KEY_SECRET.length,
+          SECRET_START: RAZORPAY_KEY_SECRET.substring(0, 4) + "...",
+          SECRET_END: "..." + RAZORPAY_KEY_SECRET.substring(RAZORPAY_KEY_SECRET.length - 4)
+        });
 
         const basicAuth = encode(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
+        console.log("DEBUG: Auth Header Preview (First 10 chars):", basicAuth.substring(0, 10));
 
-        // 1. Call Razorpay API directly from the client
+        // 1. Create Order on Razorpay directly from client (Insecure but complying with "no firebase")
         const response = await fetch('https://api.razorpay.com/v1/orders', {
           method: 'POST',
           headers: {
@@ -259,8 +277,8 @@ export default function CheckoutScreen() {
           throw new Error("Failed to create order on Razorpay");
         }
 
-        const orderRes = await response.json();
-        const razorpayOrderId = orderRes.id;
+        const orderData = await response.json();
+        const razorpayOrderId = orderData.id;
 
         // 2. Open WebView Gateway
         setCurrentRazorpayOrderId(razorpayOrderId);
