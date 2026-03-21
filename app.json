@@ -43,6 +43,9 @@
     "extra": {
       "router": {
         "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "af212ff5-d8b0-4bae-8b30-6082c1f29a4c"
       }
     }
   }
