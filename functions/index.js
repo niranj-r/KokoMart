@@ -5,9 +5,15 @@ const Razorpay = require("razorpay");
 
 admin.initializeApp();
 
-// Replace these with your actual Razorpay API keys or use Firebase Environment variables
-const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "";
-const RAZORPAY_KEY_SECRET = process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || "";
+// In a production environment, use Firebase Secrets or Environment Variables
+// firebase functions:secrets:set RAZORPAY_KEY_ID
+// firebase functions:secrets:set RAZORPAY_KEY_SECRET
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "";
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || "";
+
+if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    logger.warn("Razorpay API keys are missing. Please check your Firebase environment variables.");
+}
 
 const razorpay = new Razorpay({
     key_id: RAZORPAY_KEY_ID,
