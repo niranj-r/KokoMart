@@ -23,6 +23,7 @@ import { calculateDistance, calculateDeliveryTime, STORE_LOCATION } from '@/util
 import OrderSuccessModal from '@/components/OrderSuccessModal';
 import RazorpayCheckoutGateway from '@/components/RazorpayCheckoutGateway';
 import { encode } from 'base-64';
+import Constants from 'expo-constants';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -234,11 +235,16 @@ export default function CheckoutScreen() {
     } else {
       // Razorpay Online Payment Flow - Direct Client-Side WebView (No Firebase / Expo Go Compatible)
       try {
-        const RAZORPAY_KEY_ID = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '').trim();
-        const RAZORPAY_KEY_SECRET = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '').trim();
+        const razorpayKeyId = Constants.expoConfig?.extra?.razorpayKeyId;
+        const razorpayKeySecret = Constants.expoConfig?.extra?.razorpayKeySecret;
+
+        const RAZORPAY_KEY_ID = (razorpayKeyId || '').trim();
+        const RAZORPAY_KEY_SECRET = (razorpayKeySecret || '').trim();
+
+        console.log("RAZORPAY KEY:", RAZORPAY_KEY_ID);
 
         if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-          console.error("DEBUG: Razorpay keys are MISSING from process.env.", { 
+          console.error("DEBUG: Razorpay keys are MISSING from Constants.expoConfig.extra.", { 
             ID_EXISTS: !!RAZORPAY_KEY_ID, 
             SECRET_EXISTS: !!RAZORPAY_KEY_SECRET 
           });
