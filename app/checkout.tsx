@@ -235,33 +235,30 @@ export default function CheckoutScreen() {
     } else {
       // Razorpay Online Payment Flow - Direct Client-Side WebView (No Firebase / Expo Go Compatible)
       try {
-        const razorpayKeyId = Constants.expoConfig?.extra?.razorpayKeyId;
-        const razorpayKeySecret = Constants.expoConfig?.extra?.razorpayKeySecret;
+        const RAZORPAY_KEY_ID = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '').trim();
+        const RAZORPAY_KEY_SECRET = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '').trim();
 
-        const RAZORPAY_KEY_ID = (razorpayKeyId || '').trim();
-        const RAZORPAY_KEY_SECRET = (razorpayKeySecret || '').trim();
-
-        console.log("RAZORPAY KEY:", RAZORPAY_KEY_ID);
-
+        console.log("DEBUG: RAZORPAY KEY ID:", RAZORPAY_KEY_ID);
+        
         if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
           console.error("DEBUG: Razorpay keys are MISSING from Constants.expoConfig.extra.", { 
             ID_EXISTS: !!RAZORPAY_KEY_ID, 
             SECRET_EXISTS: !!RAZORPAY_KEY_SECRET 
           });
-          Alert.alert('Configuration Error', 'Razorpay keys are missing. Please restart your Expo server with --clear.');
+          Alert.alert('Configuration Error', 'Razorpay keys are missing. Please ensure your .env file is correctly set up and restart your Expo server.');
           return;
         }
 
-        console.log("DEBUG: Key Check", {
+        // Standard Base64 Encoding for Basic Auth
+        const credentials = `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`;
+        const basicAuth = encode(credentials).replace(/\s+/g, ''); // Ensure no spaces/newlines
+        
+        console.log("DEBUG: Key Lengths", {
           ID_LEN: RAZORPAY_KEY_ID.length,
-          ID_START: RAZORPAY_KEY_ID.substring(0, 8),
-          SECRET_LEN: RAZORPAY_KEY_SECRET.length,
-          SECRET_START: RAZORPAY_KEY_SECRET.substring(0, 4) + "...",
-          SECRET_END: "..." + RAZORPAY_KEY_SECRET.substring(RAZORPAY_KEY_SECRET.length - 4)
+          SECRET_LEN: RAZORPAY_KEY_SECRET.length
         });
 
-        const basicAuth = encode(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
-        console.log("DEBUG: Auth Header Preview (First 10 chars):", basicAuth.substring(0, 10));
+        // console.log("DEBUG: Auth Header Preview:", basicAuth.substring(0, 10)); // Hidden for security in live mode
 
         // 1. Create Order on Razorpay directly from client (Insecure but complying with "no firebase")
         const response = await fetch('https://api.razorpay.com/v1/orders', {
