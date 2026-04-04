@@ -30,7 +30,20 @@ export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
     return unsubscribe;
 };
 
-export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+export const updateOrderStatus = async (orderId: string, status: OrderStatus, actualPaymentMode?: string) => {
     const orderRef = doc(db, 'orders', orderId);
-    await updateDoc(orderRef, { status });
+    const updates: any = { status };
+    if (actualPaymentMode) {
+        updates.actual_payment_mode = actualPaymentMode;
+    }
+    await updateDoc(orderRef, updates);
+};
+
+export const claimOrder = async (orderId: string, partnerId: string, partnerName: string) => {
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, {
+        partner_id: partnerId,
+        partner_name: partnerName,
+        status: 'out_for_delivery' // Ensure status is set correctly when claimed
+    });
 };

@@ -1,25 +1,45 @@
 import { View, Text, FlatList, StyleSheet, Linking, Alert, TouchableOpacity, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { auth } from '../config/firebaseConfig';
+import { auth, db } from '../config/firebaseConfig';
 import { signOut } from 'firebase/auth';
-import { subscribeToOrders, updateOrderStatus } from '../services/OrderService';
+import { doc, getDoc } from 'firebase/firestore';
+import { subscribeToOrders, updateOrderStatus, claimOrder } from '../services/OrderService';
 import { Order } from '../types';
 import Colors from '../constants/colors';
-import { MapPin, CheckCircle, LogOut, Package } from 'lucide-react-native';
+import { MapPin, CheckCircle, LogOut, Package, Hand } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import PaymentVerificationModal from '../components/PaymentVerificationModal';
 
 export default function Orders() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [partnerProfile, setPartnerProfile] = useState<{ name: string } | null>(null);
+    const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+    const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
     useEffect(() => {
         if (!auth.currentUser) {
             router.replace('/login');
             return;
         }
+
+        // Fetch partner profile name
+        const fetchPartnerProfile = async () => {
+            try {
+                const docRef = doc(db, 'partners', auth.currentUser!.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    setPartnerProfile(docSnap.data() as { name: string });
+                }
+            } catch (error) {
+                console.error("Error fetching partner profile:", error);
+            }
+        };
+
+        fetchPartnerProfile();
 
         const unsubscribe = subscribeToOrders((fetchedOrders) => {
             setOrders(fetchedOrders);
@@ -28,6 +48,22 @@ export default function Orders() {
 
         return () => unsubscribe();
     }, []);
+
+    const handleClaimOrder = async (orderId: string) => {
+        if (!partnerProfile) {
+            Alert.alert('Error', 'Could not fetch your profile. Please try again.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await claimOrder(orderId, auth.currentUser!.uid, partnerProfile.name);
+        } catch (error: any) {
+            Alert.alert('Error', 'Failed to claim order: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogout = async () => {
         await signOut(auth);
@@ -43,12 +79,26 @@ export default function Orders() {
         Linking.openURL(url).catch(err => Alert.alert('Error', 'Could not open map.'));
     };
 
-    const handleMarkDelivered = async (orderId: string) => {
+    const handleMarkDelivered = async (order: Order) => {
+        const isCOD = order.payment_method === 'cod' || (!order.payment_method && !order.payment_id);
+        if (isCOD) {
+            setActiveOrder(order);
+            setIsPaymentModalVisible(true);
+        } else {
+            confirmDelivery(order.id);
+        }
+    };
+
+    const confirmDelivery = async (orderId: string, actualPaymentMode?: string) => {
         try {
-            await updateOrderStatus(orderId, 'delivered');
-            Alert.alert('Success', 'Order marked as delivered.');
+            setLoading(true);
+            setIsPaymentModalVisible(false);
+            await updateOrderStatus(orderId, 'delivered', actualPaymentMode);
         } catch (error: any) {
             Alert.alert('Error', 'Failed to update status: ' + error.message);
+        } finally {
+            setLoading(false);
+            setActiveOrder(null);
         }
     };
 
@@ -94,24 +144,49 @@ export default function Orders() {
                 <Text style={styles.amount}>₹{item.final_amount}</Text>
             </View>
 
-            <View style={styles.actions}>
-                <TouchableOpacity
-                    style={[styles.actionButton, styles.travelButton]}
-                    onPress={() => handleTravel(item.address)}
-                    activeOpacity={0.8}
-                >
-                    <MapPin size={20} color={Colors.white} />
-                    <Text style={styles.buttonText}>Navigate</Text>
-                </TouchableOpacity>
+            {item.partner_id && item.partner_id !== auth.currentUser?.uid && (
+                <View style={styles.claimedBadge}>
+                    <Hand size={16} color={Colors.orange} />
+                    <Text style={styles.claimedText}>Claimed by {item.partner_name}</Text>
+                </View>
+            )}
 
-                <TouchableOpacity
-                    style={[styles.actionButton, styles.deliverButton]}
-                    onPress={() => handleMarkDelivered(item.id)}
-                    activeOpacity={0.8}
-                >
-                    <CheckCircle size={20} color={Colors.white} />
-                    <Text style={styles.buttonText}>Delivered</Text>
-                </TouchableOpacity>
+            <View style={styles.actions}>
+                {!item.partner_id ? (
+                    <TouchableOpacity
+                        style={[styles.actionButton, styles.claimButton]}
+                        onPress={() => handleClaimOrder(item.id)}
+                        activeOpacity={0.8}
+                    >
+                        <Hand size={20} color={Colors.white} />
+                        <Text style={styles.buttonText}>Claim Order</Text>
+                    </TouchableOpacity>
+                ) : item.partner_id === auth.currentUser?.uid ? (
+                    <>
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.travelButton]}
+                            onPress={() => handleTravel(item.address)}
+                            activeOpacity={0.8}
+                        >
+                            <MapPin size={20} color={Colors.white} />
+                            <Text style={styles.buttonText}>Navigate</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.deliverButton]}
+                            onPress={() => handleMarkDelivered(item)}
+                            activeOpacity={0.8}
+                        >
+                            <CheckCircle size={20} color={Colors.white} />
+                            <Text style={styles.buttonText}>Delivered</Text>
+                        </TouchableOpacity>
+                    </>
+                ) : (
+                    <View style={[styles.actionButton, styles.disabledButton]}>
+                        <CheckCircle size={20} color={Colors.white} />
+                        <Text style={styles.buttonText}>Order Taken</Text>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -148,6 +223,19 @@ export default function Orders() {
                     }
                 />
             )}
+
+            <PaymentVerificationModal
+                isVisible={isPaymentModalVisible}
+                onClose={() => {
+                    setIsPaymentModalVisible(false);
+                    setActiveOrder(null);
+                }}
+                onConfirm={(mode) => {
+                    if (activeOrder) {
+                        confirmDelivery(activeOrder.id, mode);
+                    }
+                }}
+            />
         </View>
     );
 }
@@ -315,6 +403,27 @@ const styles = StyleSheet.create({
     },
     deliverButton: {
         backgroundColor: Colors.priceUp,
+    },
+    claimButton: {
+        backgroundColor: Colors.orange,
+    },
+    disabledButton: {
+        backgroundColor: Colors.priceNeutral,
+        opacity: 0.6,
+    },
+    claimedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 123, 0, 0.1)',
+        padding: 10,
+        borderRadius: 10,
+        marginTop: 8,
+        gap: 6,
+    },
+    claimedText: {
+        color: Colors.orange,
+        fontWeight: '600',
+        fontSize: 13,
     },
     buttonText: {
         color: Colors.white,

@@ -61,4 +61,19 @@ export interface Order {
     created_at: number | string; // Allow string for ISO dates if needed, or stick to one. AppContext uses Date.now() (number) and string?
     address?: string;
     delivery_slot?: string;
+    partner_id?: string; // UID of the delivery partner who claimed this order
+    partner_name?: string; // Name of the delivery partner who claimed this order
+    payment_method?: 'online' | 'cod'; // Payment method used at checkout
+    actual_payment_mode?: 'upi' | 'cash' | 'delivery'; // Mode verified by partner at delivery
+    payment_id?: string;
+    razorpay_order_id?: string;
+}
+export interface DeliveryPartner {
+    id: string; // Firebase Auth UID
+    name: string;
+    email: string;
+    phone: string;
+    vehicle_number: string;
+    created_at: number; // Timestamp
+    is_active: boolean; // For future approval logic
 }

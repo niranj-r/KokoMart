@@ -96,7 +96,7 @@ export const OrderService = {
         }
     },
 
-    updateOrderStatus: async (orderId: string, status: OrderStatus) => {
+    updateOrderStatus: async (orderId: string, status: OrderStatus, actualPaymentMode?: string) => {
         try {
             const orderRef = doc(db, 'orders', orderId);
             const orderSnap = await getDoc(orderRef);
@@ -105,6 +105,10 @@ export const OrderService = {
 
             const orderData = orderSnap.data() as Order;
             const updates: any = { status };
+            
+            if (actualPaymentMode) {
+                updates.actual_payment_mode = actualPaymentMode;
+            }
 
             // Check if delivering and points haven't been credited
             if (status === 'delivered' && !orderData.points_credited && (orderData.earned_points || 0) > 0) {

@@ -84,4 +84,6 @@ export interface Order {
     display_id?: string;
     payment_id?: string;
     razorpay_order_id?: string;
+    payment_method?: 'online' | 'cod';
+    actual_payment_mode?: 'upi' | 'cash' | 'delivery';
 }

@@ -182,6 +182,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     walletUsed: number = 0,
     note?: string,
     deliveryCharge: number = 0,
+    paymentMethod: 'online' | 'cod' = 'cod',
     paymentDetails?: { payment_id: string; razorpay_order_id: string }
   ) => {
     if (!user.id) return;
@@ -237,6 +238,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         address,
         delivery_slot: deliverySlot,
         note,
+        payment_method: paymentMethod,
         ...(paymentDetails ? {
           payment_id: paymentDetails.payment_id,
           razorpay_order_id: paymentDetails.razorpay_order_id
@@ -253,7 +255,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
 
       clearCart();
-      return result;
       return result;
     } catch (e) {
       console.error("Order Failed", e);

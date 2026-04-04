@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
-import { auth } from '../config/firebaseConfig';
+import { auth, db } from '../config/firebaseConfig';
 import Colors from '../constants/colors';
 
 export default function Login() {
@@ -18,7 +19,18 @@ export default function Login() {
         }
         setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Check if user is a delivery partner
+            const partnerDoc = await getDoc(doc(db, 'partners', user.uid));
+            
+            if (!partnerDoc.exists()) {
+                await signOut(auth);
+                Alert.alert('Access Denied', 'Only registered delivery partners can access this app.');
+                return;
+            }
+
             router.replace('/orders');
         } catch (error: any) {
             Alert.alert('Login Failed', error.message);
@@ -69,6 +81,16 @@ export default function Login() {
                     ) : (
                         <Text style={styles.loginButtonText}>Login</Text>
                     )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.signupLink}
+                    onPress={() => router.push('/signup')}
+                    disabled={loading}
+                >
+                    <Text style={styles.signupLinkText}>
+                        Don't have an account? <Text style={styles.signupLinkBold}>Sign Up</Text>
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -142,5 +164,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 18,
         letterSpacing: 0.5
+    },
+    signupLink: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    signupLinkText: {
+        color: Colors.creamLight,
+        fontSize: 14,
+        opacity: 0.9
+    },
+    signupLinkBold: {
+        color: Colors.cream,
+        fontWeight: 'bold'
     }
 });
