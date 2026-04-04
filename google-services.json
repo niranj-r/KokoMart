@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "270170795022",
+    "project_id": "meatup-f8c49",
+    "storage_bucket": "meatup-f8c49.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:270170795022:android:8eb5d504eb29ffd122205f",
+        "android_client_info": {
+          "package_name": "app.rork.kokomart.chickendelivery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1KB9KcRaz_CVex7unhI4Q_55aohtacmw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:270170795022:android:6b1c6c4e623ee4f422205f",
+        "android_client_info": {
+          "package_name": "meatup.in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1KB9KcRaz_CVex7unhI4Q_55aohtacmw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

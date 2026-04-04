@@ -18,13 +18,14 @@
       "bundleIdentifier": "app.rork.kokomart-chicken-delivery"
     },
     "android": {
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.kokomart_chicken_delivery"
+      "package": "app.rork.kokomart.chickendelivery",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
