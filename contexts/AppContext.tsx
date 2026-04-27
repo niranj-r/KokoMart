@@ -253,21 +253,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
       const result = await OrderService.createOrder(orderPayload);
 
-      // Save address if it's new
-      const isNewAddress = !user.addresses?.some(a => a.details === address);
-      if (address && isNewAddress) {
+      // Save address if it's completely new (not in addresses list)
+      const isAlreadySaved = user.addresses?.some(a => 
+        a.details.trim().toLowerCase() === address.trim().toLowerCase()
+      );
+      
+      if (address && !isAlreadySaved && !isGuest) {
         const newAddrObj: UserAddress = {
           id: `addr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           label: 'Other',
-          details: address,
+          details: address.trim(),
           isPrimary: false
         };
         await UserService.saveAddress(user.id, newAddrObj);
-        // Optimistic update of addresses list only
-        setUser((prev: User) => ({ 
-          ...prev, 
-          addresses: [...(prev.addresses || []), newAddrObj] 
-        }));
+        // Note: No optimistic update here; let onSnapshot handle the sync to prevent duplicates
       }
 
       clearCart();
@@ -319,18 +318,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     },
     saveAddress: async (addressDetails: string, label: string = 'Other') => {
-      if (!user.id) return;
+      if (!user.id || !addressDetails.trim()) return;
+      
+      // Check if already exists to prevent duplicates
+      const exists = user.addresses?.some(a => 
+        a.details.trim().toLowerCase() === addressDetails.trim().toLowerCase()
+      );
+      if (exists) return;
+
       const newAddrObj: UserAddress = {
         id: `addr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         label,
-        details: addressDetails,
+        details: addressDetails.trim(),
         isPrimary: (user.addresses || []).length === 0
       };
       await UserService.saveAddress(user.id, newAddrObj);
-      setUser((prev: User) => ({ 
-        ...prev, 
-        addresses: [...(prev.addresses || []), newAddrObj]
-      }));
+      // Let onSnapshot handle the update to ensure single source of truth
     },
     removeAddress: async (address: string | UserAddress) => {
       if (!user.id) return;
