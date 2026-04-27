@@ -79,7 +79,6 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
                     email: email,
                     phone: phone,
                     address: address,
-                    is_first_order_completed: false,
                     wallet_points: 0
                 });
 

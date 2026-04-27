@@ -1,6 +1,6 @@
 import { db } from '@/config/firebaseConfig';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { UserProfile } from '@/types';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { UserProfile, UserAddress } from '@/types';
 
 export const UserService = {
     createUser: async (uid: string, data: Omit<UserProfile, 'id' | 'created_at'>) => {
@@ -12,8 +12,13 @@ export const UserService = {
                 phone: data.phone || '', // Ensure phone is saved, default to empty if missing but expected to be provided
                 email: data.email,
                 address: data.address || '',
+                addresses: data.address ? [{
+                    id: `addr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    label: 'Primary',
+                    details: data.address,
+                    isPrimary: true
+                }] : [],
                 wallet_points: data.wallet_points || 0,
-                is_first_order_completed: false,
                 created_at: Date.now()
             };
             await setDoc(userRef, userData, { merge: true });
@@ -68,6 +73,30 @@ export const UserService = {
             await updateDoc(userRef, data);
         } catch (error) {
             console.error("Error updating user:", error);
+            throw error;
+        }
+    },
+
+    saveAddress: async (uid: string, addressObj: UserAddress) => {
+        try {
+            const userRef = doc(db, 'users', uid);
+            await updateDoc(userRef, {
+                addresses: arrayUnion(addressObj)
+            });
+        } catch (error) {
+            console.error("Error saving address:", error);
+            throw error;
+        }
+    },
+
+    removeAddress: async (uid: string, address: string) => {
+        try {
+            const userRef = doc(db, 'users', uid);
+            await updateDoc(userRef, {
+                addresses: arrayRemove(address)
+            });
+        } catch (error) {
+            console.error("Error removing address:", error);
             throw error;
         }
     }

@@ -10,6 +10,7 @@ import {
   StatusBar,
   Image,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -22,6 +23,7 @@ import {
   ChevronLeft,
   LogOut,
   LogIn,
+  Trash2,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
@@ -32,8 +34,16 @@ import StatusBanner from '@/components/StatusBanner';
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
+  const [bannerMessage, setBannerMessage] = React.useState('');
+  
+  // New Address State
+  const [showAddAddress, setShowAddAddress] = React.useState(false);
+  const [newAddressText, setNewAddressText] = React.useState('');
+  const [newAddressLabel, setNewAddressLabel] = React.useState('Home');
+  const [isSavingAddress, setIsSavingAddress] = React.useState(false);
+
   const router = useRouter();
-  const { user, walletHistory, updateUserProfile } = useApp();
+  const { user, walletHistory, updateUserProfile, removeAddress, saveAddress } = useApp();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const [isEditing, setIsEditing] = React.useState(false);
@@ -46,7 +56,6 @@ export default function ProfileScreen() {
   // Banner State
   const [bannerVisible, setBannerVisible] = React.useState(false);
   const [bannerType, setBannerType] = React.useState<'success' | 'error'>('success');
-  const [bannerMessage, setBannerMessage] = React.useState('');
 
   React.useEffect(() => {
     setEditName(user.name);
@@ -81,6 +90,26 @@ export default function ProfileScreen() {
       address: editAddress,
     });
     setIsEditing(false);
+  };
+
+  const handleCallSupport = () => {
+    Linking.openURL('tel:+918281626692');
+  };
+
+  const handleAddAddress = async () => {
+    if (!newAddressText.trim()) return;
+    setIsSavingAddress(true);
+    try {
+      await saveAddress(newAddressText.trim(), newAddressLabel.trim() || 'Home');
+      setNewAddressText('');
+      setNewAddressLabel('Home');
+      setShowAddAddress(false);
+      showBanner('success', 'Address added successfully');
+    } catch (e) {
+      showBanner('error', 'Failed to add address');
+    } finally {
+      setIsSavingAddress(false);
+    }
   };
 
   const getInitials = (name: string) => {
@@ -257,6 +286,90 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Saved Addresses Section */}
+        {!isGuest && (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Saved Addresses</Text>
+              {!showAddAddress && (
+                <TouchableOpacity onPress={() => setShowAddAddress(true)}>
+                  <Text style={styles.addAddressBtnText}>+ Add New</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.infoCard}>
+              {showAddAddress && (
+                <View style={styles.addAddressForm}>
+                  <TextInput
+                    style={[styles.addAddressInput, { minHeight: 45, marginBottom: 12 }]}
+                    placeholder="Address Label (e.g. Home, Office)"
+                    value={newAddressLabel}
+                    onChangeText={setNewAddressLabel}
+                  />
+                  <TextInput
+                    style={styles.addAddressInput}
+                    placeholder="Enter full address details..."
+                    value={newAddressText}
+                    onChangeText={setNewAddressText}
+                    multiline
+                  />
+                  <View style={styles.addAddressActions}>
+                    <TouchableOpacity 
+                      style={styles.cancelAddBtn} 
+                      onPress={() => {
+                        setShowAddAddress(false);
+                        setNewAddressText('');
+                        setNewAddressLabel('Home');
+                      }}
+                    >
+                      <Text style={styles.cancelAddBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.confirmAddBtn, !newAddressText.trim() && { opacity: 0.5 }]} 
+                      onPress={handleAddAddress}
+                      disabled={isSavingAddress || !newAddressText.trim()}
+                    >
+                      <Text style={styles.confirmAddBtnText}>Save Address</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {(!user.addresses || user.addresses.length === 0) ? (
+                <View style={styles.emptyAddresses}>
+                  <Text style={styles.emptyText}>No saved addresses yet.</Text>
+                </View>
+              ) : (
+                user.addresses.map((addr, index) => {
+                  const uniqueKey = `addr-${addr.id || index}-${index}`;
+                  return (
+                    <View key={uniqueKey}>
+                      <View style={styles.addressItem}>
+                      <View style={styles.addressInfo}>
+                        <View style={styles.labelBadge}>
+                          <Text style={styles.labelBadgeText}>{addr.label}</Text>
+                        </View>
+                        <Text style={styles.addressItemText} numberOfLines={2}>
+                          {addr.details}
+                        </Text>
+                      </View>
+                      <TouchableOpacity 
+                        onPress={() => removeAddress(addr)}
+                        style={styles.deleteAddressBtn}
+                      >
+                        <Trash2 size={16} color={Colors.priceDown} />
+                      </TouchableOpacity>
+                    </View>
+                    {index < user.addresses.length - 1 && <View style={styles.divider} />}
+                  </View>
+                )
+              })
+            )}
+          </View>
+        </View>
+      )}
+
         {/* Transaction History */}
         {walletHistory.length > 0 && (
           <View style={styles.sectionContainer}>
@@ -304,6 +417,9 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        <TouchableOpacity style={styles.supportFooter} onPress={handleCallSupport}>
+          <Text style={styles.supportText}>Contact if query: <Text style={styles.supportNumber}>+91 82816 26692</Text></Text>
+        </TouchableOpacity>
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -624,5 +740,119 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  supportFooter: {
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+    paddingVertical: 10,
+  },
+  supportText: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '500',
+  },
+  supportNumber: {
+    color: Colors.deepTeal,
+    fontWeight: '700',
+  },
+  emptyAddresses: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#999',
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  addressItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  addressInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  addressItemText: {
+    fontSize: 14,
+    color: Colors.charcoal,
+    flex: 1,
+  },
+  deleteAddressBtn: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  labelBadge: {
+    backgroundColor: Colors.deepTeal.substring(0, 7) + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  labelBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.deepTeal,
+    textTransform: 'uppercase',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addAddressBtnText: {
+    fontSize: 14,
+    color: Colors.deepTeal,
+    fontWeight: '700',
+  },
+  addAddressForm: {
+    padding: 16,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  addAddressInput: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.charcoal,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  addAddressActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 12,
+  },
+  cancelAddBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  cancelAddBtnText: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmAddBtn: {
+    backgroundColor: Colors.deepTeal,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  confirmAddBtnText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

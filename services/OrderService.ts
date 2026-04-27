@@ -69,11 +69,13 @@ export const OrderService = {
             //     }
             // }
 
-            // Update first order status
+            // Update first order status Removed
+            /*
             const user = await UserService.getUser(orderData.user_id);
             if (user && !user.is_first_order_completed) {
                 await UserService.updateUser(orderData.user_id, { is_first_order_completed: true });
             }
+            */
 
             return { id: newOrderRef.id, display_id };
         } catch (error) {

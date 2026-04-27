@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles, AlertCircle } from 'lucide-react-native';
+import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles, AlertCircle, Plus, X } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
@@ -28,7 +28,7 @@ import Constants from 'expo-constants';
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { cart, cartTotal, user, placeOrder } = useApp();
+  const { cart, cartTotal, user, placeOrder, isGuest, saveAddress } = useApp();
   const [address, setAddress] = useState(user.address || '');
   const [useWalletPoints, setUseWalletPoints] = useState(false);
   const [note, setNote] = useState('');
@@ -43,7 +43,14 @@ export default function CheckoutScreen() {
   const [deliveryTime, setDeliveryTime] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
+  // New Address In Checkout State
+  const [showAddAddressInline, setShowAddAddressInline] = useState(false);
+  const [newAddrLabel, setNewAddrLabel] = useState('Home');
+  const [newAddrDetails, setNewAddrDetails] = useState('');
+  const [isSavingNewAddr, setIsSavingNewAddr] = useState(false);
+
+  // const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
+  const firstOrderDiscount = 0;
 
   // Tax Calculation
   const taxRate = 0.05; // 5%
@@ -205,7 +212,36 @@ export default function CheckoutScreen() {
     }
   };
 
+  const handleAddNewAddress = async () => {
+    if (!newAddrDetails.trim()) return;
+    setIsSavingNewAddr(true);
+    try {
+      await saveAddress(newAddrDetails.trim(), newAddrLabel.trim() || 'Home');
+      setAddress(newAddrDetails.trim());
+      setShowAddAddressInline(false);
+      setNewAddrDetails('');
+      setNewAddrLabel('Home');
+      Alert.alert('Success', 'Address saved to your profile.');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to save address.');
+    } finally {
+      setIsSavingNewAddr(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
+    if (isGuest) {
+      Alert.alert(
+        'Authentication Required',
+        'Please sign in to place an order.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/login') }
+        ]
+      );
+      return;
+    }
+
     if (!address.trim()) {
       Alert.alert('Error', 'Please enter delivery address');
       return;
@@ -222,7 +258,7 @@ export default function CheckoutScreen() {
 
     if (paymentMethod === 'cod') {
       try {
-        const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge, 'cod');
+        const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge, taxAmount, handlingFee, 0, 'cod');
         if (!result) throw new Error("Order placement failed");
 
         const { display_id } = result;
@@ -309,7 +345,7 @@ export default function CheckoutScreen() {
         signature: data.razorpay_signature // can be saved if needed
       };
 
-      const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge, 'online', paymentDetails);
+      const result = await placeOrder(address, slotString, walletDeduction, note, deliveryCharge, taxAmount, handlingFee, 0, 'online', paymentDetails);
       if (!result) throw new Error("Order placement failed");
 
       const { display_id } = result;
@@ -352,19 +388,26 @@ export default function CheckoutScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* First Order Discount Banner */}
-        {firstOrderDiscount > 0 && (
-          <View style={styles.discountBanner}>
-            <View style={styles.discountIconContainer}>
-              <TicketPercent size={24} color={Colors.white} />
+        {/* First Order Discount Banner Removed */}
+
+        {/* Guest Sign-in Prompt */}
+        {isGuest && (
+          <View style={styles.guestBanner}>
+            <View style={styles.guestIconContainer}>
+              <AlertCircle size={24} color={Colors.white} />
             </View>
-            <View style={styles.discountContent}>
-              <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
-              <Text style={styles.discountSubtitle}>
-                You'll save 10% on this order as a welcome gift.
+            <View style={styles.guestContent}>
+              <Text style={styles.guestTitle}>Sign in to Order</Text>
+              <Text style={styles.guestSubtitle}>
+                Please log in to your account to place orders and manage your profile.
               </Text>
+              <TouchableOpacity 
+                style={styles.guestLoginBtn}
+                onPress={() => router.push('/login')}
+              >
+                <Text style={styles.guestLoginBtnText}>Sign In Now</Text>
+              </TouchableOpacity>
             </View>
-            <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
           </View>
         )}
 
@@ -378,6 +421,103 @@ export default function CheckoutScreen() {
                 <MapPin size={14} color={Colors.deepTeal} style={{ marginRight: 6 }} />
                 <Text style={styles.label}>Address</Text>
               </View>
+
+              {/* Saved Addresses Selector */}
+              {user.addresses && user.addresses.length > 0 && (
+                <View style={styles.savedAddressesWrapper}>
+                  <Text style={styles.savedLabel}>Saved Addresses:</Text>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    contentContainerStyle={styles.savedAddressesList}
+                  >
+                    <TouchableOpacity 
+                      style={styles.addNewChip}
+                      onPress={() => setShowAddAddressInline(true)}
+                    >
+                      <Plus size={16} color={Colors.deepTeal} />
+                      <Text style={styles.addNewChipText}>Add New</Text>
+                    </TouchableOpacity>
+
+                    {(() => {
+                      const displayAddresses = [...(user.addresses || [])];
+                      // If main address isn't in the list, add it as Primary
+                      if (user.address && !displayAddresses.some(a => a.details === user.address)) {
+                        displayAddresses.unshift({
+                          id: 'primary-temp',
+                          label: 'Primary',
+                          details: user.address,
+                          isPrimary: true
+                        });
+                      }
+                      
+                      return displayAddresses.map((savedAddr, idx) => {
+                        const isSelected = address === savedAddr.details;
+                        const uniqueKey = `addr-${savedAddr.id || idx}-${idx}`;
+                        return (
+                          <TouchableOpacity 
+                            key={uniqueKey} 
+                            style={[
+                              styles.addressChip,
+                              isSelected && styles.addressChipActive
+                            ]}
+                            onPress={() => setAddress(savedAddr.details)}
+                          >
+                            <Text 
+                              style={[
+                                styles.addressChipText,
+                                isSelected && styles.addressChipTextActive
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {savedAddr.label || 'Address'}
+                            </Text>
+                            <Text style={styles.addressChipDetails} numberOfLines={1}>
+                              {savedAddr.details}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      });
+                    })()}
+                  </ScrollView>
+                </View>
+              )}
+
+              {showAddAddressInline && (
+                <View style={styles.inlineAddForm}>
+                  <View style={styles.inlineFormHeader}>
+                    <Text style={styles.inlineFormTitle}>Add New Address</Text>
+                    <TouchableOpacity onPress={() => setShowAddAddressInline(false)}>
+                      <X size={20} color="#999" />
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={styles.inlineInput}
+                    placeholder="Label (e.g. Home, Office)"
+                    value={newAddrLabel}
+                    onChangeText={setNewAddrLabel}
+                  />
+                  <TextInput
+                    style={[styles.inlineInput, { minHeight: 60 }]}
+                    placeholder="Full Address Details..."
+                    value={newAddrDetails}
+                    onChangeText={setNewAddrDetails}
+                    multiline
+                  />
+                  <TouchableOpacity 
+                    style={[styles.inlineSaveBtn, !newAddrDetails.trim() && { opacity: 0.5 }]}
+                    onPress={handleAddNewAddress}
+                    disabled={isSavingNewAddr || !newAddrDetails.trim()}
+                  >
+                    {isSavingNewAddr ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <Text style={styles.inlineSaveBtnText}>Save & Select</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <TextInput
                 style={styles.input}
                 value={address}
@@ -531,12 +671,7 @@ export default function CheckoutScreen() {
               </Text>
             </View>
 
-            {firstOrderDiscount > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: Colors.priceUp }]}>New User Discount</Text>
-                <Text style={[styles.summaryValue, { color: Colors.priceUp }]}>-₹{firstOrderDiscount.toFixed(2)}</Text>
-              </View>
-            )}
+            {/* New User Discount Row Removed */}
 
             {useWalletPoints && walletDeduction > 0 && (
               <View style={styles.summaryRow}>
@@ -599,7 +734,10 @@ export default function CheckoutScreen() {
       {/* Floating Footer */}
       <View style={styles.floatFooter}>
         <TouchableOpacity 
-          style={[styles.checkoutBtn, (deliveryDistance !== null && deliveryDistance > 25) ? styles.checkoutBtnDisabled : null]} 
+          style={[
+            styles.checkoutBtn, 
+            ((deliveryDistance !== null && deliveryDistance > 25) || isGuest) ? styles.checkoutBtnDisabled : null
+          ]} 
           onPress={handlePlaceOrder}
           disabled={deliveryDistance !== null && deliveryDistance > 25}
         >
@@ -720,6 +858,58 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 18,
+  },
+  guestBanner: {
+    backgroundColor: Colors.orange,
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: Colors.orange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  guestIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  guestContent: {
+    flex: 1,
+  },
+  guestTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.white,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  guestSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  guestLoginBtn: {
+    backgroundColor: Colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  guestLoginBtnText: {
+    color: Colors.orange,
+    fontWeight: '700',
+    fontSize: 13,
   },
 
   // Section Styles
@@ -1080,5 +1270,105 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 2,
-  }
+  },
+  savedAddressesWrapper: {
+    marginBottom: 16,
+  },
+  savedLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  savedAddressesList: {
+    paddingRight: 20,
+    gap: 8,
+  },
+  addressChip: {
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    maxWidth: 200,
+  },
+  addressChipActive: {
+    backgroundColor: Colors.deepTeal.substring(0, 7) + '15',
+    borderColor: Colors.deepTeal,
+  },
+  addressChipText: {
+    fontSize: 13,
+    color: '#666',
+  },
+  addressChipTextActive: {
+    color: Colors.deepTeal,
+    fontWeight: '700',
+  },
+  addressChipDetails: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 2,
+  },
+  addNewChip: {
+    backgroundColor: Colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.deepTeal,
+    borderStyle: 'dashed',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginRight: 8,
+    height: 45,
+    alignSelf: 'center',
+  },
+  addNewChipText: {
+    fontSize: 13,
+    color: Colors.deepTeal,
+    fontWeight: '700',
+  },
+  inlineAddForm: {
+    backgroundColor: '#F9F9F9',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  inlineFormHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  inlineFormTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.charcoal,
+  },
+  inlineInput: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.charcoal,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    marginBottom: 10,
+  },
+  inlineSaveBtn: {
+    backgroundColor: Colors.deepTeal,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  inlineSaveBtnText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

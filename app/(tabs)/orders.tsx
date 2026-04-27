@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: stri
 };
 
 export default function OrdersScreen() {
-  const { orders, cancelOrder } = useApp();
+  const { orders, cancelOrder, isGuest } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [chatVisible, setChatVisible] = React.useState(false);
@@ -41,6 +41,10 @@ export default function OrdersScreen() {
   const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
 
   const handleSupportPress = () => {
+    if (isGuest) {
+      Alert.alert('Sign In Required', 'Please sign in to contact support.');
+      return;
+    }
     setChatVisible(true);
   };
 

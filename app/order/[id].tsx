@@ -61,7 +61,7 @@ export default function OrderDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { orders } = useApp();
+    const { orders, isGuest } = useApp();
     const [chatVisible, setChatVisible] = useState(false);
 
     const order = orders.find((o) => o.id === id);
@@ -84,8 +84,8 @@ export default function OrderDetailScreen() {
     const currentStatusIndex = ALL_STATUSES.indexOf(order.status);
     const hasPaymentId = !!order.payment_id || !!order.razorpay_order_id;
 
-    const taxRate = 0;
-    const taxAmount = order.total_amount * taxRate;
+    const taxAmount = order.tax_amount ?? 0;
+    const platformFee = order.platform_fee ?? 0;
     const deliveryCharge = order.delivery_charge ?? 0;
 
     const handleCallSupport = () => {
@@ -230,7 +230,7 @@ export default function OrderDetailScreen() {
                                         </Text>
                                     </View>
                                     <Text style={styles.itemPrice}>
-                                        ₹{(item.price * item.weight * item.quantity).toFixed(2)}
+                                        ₹{(item.price * item.quantity).toFixed(2)}
                                     </Text>
                                 </View>
                                 {index < order.items.length - 1 && <View style={styles.itemDivider} />}
@@ -326,6 +326,13 @@ export default function OrderDetailScreen() {
                             </Text>
                         </View>
 
+                        <View style={styles.billRow}>
+                            <Text style={styles.billLabel}>Platform Fee</Text>
+                            <Text style={platformFee === 0 ? styles.billValueFree : styles.billValue}>
+                                {platformFee === 0 ? '₹0.00' : `+₹${platformFee.toFixed(2)}`}
+                            </Text>
+                        </View>
+
                         {order.discount > 0 && (
                             <View style={styles.billRow}>
                                 <Text style={[styles.billLabel, { color: Colors.priceUp }]}>Discount</Text>
@@ -386,21 +393,30 @@ export default function OrderDetailScreen() {
                         <View style={styles.rowDivider} />
 
                         <View style={styles.helpBtns}>
-                            <TouchableOpacity style={styles.helpBtn} onPress={handleCallSupport}>
+                            <TouchableOpacity 
+                                style={[styles.helpBtn, isGuest && { opacity: 0.5 }]} 
+                                onPress={isGuest ? () => Alert.alert('Sign In Required', 'Please sign in to contact support.') : handleCallSupport}
+                            >
                                 <Phone size={18} color={Colors.deepTeal} />
                                 <Text style={styles.helpBtnText}>Call</Text>
                             </TouchableOpacity>
 
                             <View style={styles.helpBtnDivider} />
 
-                            <TouchableOpacity style={styles.helpBtn} onPress={handleWhatsApp}>
+                            <TouchableOpacity 
+                                style={[styles.helpBtn, isGuest && { opacity: 0.5 }]} 
+                                onPress={isGuest ? () => Alert.alert('Sign In Required', 'Please sign in to contact support.') : handleWhatsApp}
+                            >
                                 <MessageCircle size={18} color={Colors.priceUp} />
                                 <Text style={[styles.helpBtnText, { color: Colors.priceUp }]}>WhatsApp</Text>
                             </TouchableOpacity>
 
                             <View style={styles.helpBtnDivider} />
 
-                            <TouchableOpacity style={styles.helpBtn} onPress={() => setChatVisible(true)}>
+                            <TouchableOpacity 
+                                style={[styles.helpBtn, isGuest && { opacity: 0.5 }]} 
+                                onPress={isGuest ? () => Alert.alert('Sign In Required', 'Please sign in to contact support.') : () => setChatVisible(true)}
+                            >
                                 <Headset size={18} color={Colors.orange} />
                                 <Text style={[styles.helpBtnText, { color: Colors.orange }]}>Chat</Text>
                             </TouchableOpacity>

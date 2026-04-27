@@ -54,6 +54,9 @@ export interface Order {
     items: OrderItem[];
     total_amount: number;
     discount: number;
+    tax_amount?: number;
+    platform_fee?: number;
+    delivery_charge?: number;
     wallet_used: number;
     final_amount: number;
     earned_points: number;

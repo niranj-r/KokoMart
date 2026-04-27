@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag, Plus, Minus } from 'lucide-react-native';
+import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag, Plus, Minus, LogIn, Star } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
@@ -25,7 +25,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { products, addToCart, cartItemCount, cart, removeFromCart, cartTotal } = useApp();
+  const { products, addToCart, cartItemCount, cart, removeFromCart, cartTotal, isGuest } = useApp();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const tickerPosition = useRef(new Animated.Value(0)).current;
@@ -149,6 +149,12 @@ export default function HomeScreen() {
               </View>
             )}
           </TouchableOpacity>
+          {isGuest && (
+            <TouchableOpacity style={styles.headerSignInPill} onPress={() => router.push('/login')}>
+              <LogIn size={14} color={Colors.deepTeal} />
+              <Text style={styles.headerSignInText}>Sign In</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.searchBarContainer}>
@@ -168,6 +174,24 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Guest Sign-in Notification */}
+        {isGuest && (
+          <View style={styles.guestNotification}>
+            <View style={styles.guestNotifIcon}>
+              <LogIn size={20} color={Colors.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.guestNotifTitle}>Welcome to Meat Up!</Text>
+              <Text style={styles.guestNotifSub}>Sign in to unlock exclusive rewards & easy ordering.</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.guestNotifBtn}
+              onPress={() => router.push('/login')}
+            >
+              <Text style={styles.guestNotifBtnText}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* 2. Live Ticker */}
         {topProducts.length > 0 && (
@@ -315,13 +339,27 @@ function ProductCard({
       <View style={styles.cardContent}>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>{product.name}</Text>
-          <View style={styles.priceTag}>
-            <Text style={styles.priceTagText}>₹{((product.current_price / priceQty) * selectedWeight).toFixed(0)}</Text>
-            <Text style={styles.priceUnit}>/{selectedWeight}{product.unit.toLowerCase()}</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <View style={styles.priceTag}>
+              <Text style={styles.priceTagText}>₹{((product.current_price / priceQty) * selectedWeight).toFixed(0)}</Text>
+              <Text style={styles.priceUnit}>/{selectedWeight}{product.unit.toLowerCase()}</Text>
+            </View>
+            {/* Rating Summary moved here */}
+            <View style={[styles.ratingBrief, { marginTop: 4, marginBottom: 0 }]}>
+              <Star size={12} color={Colors.deepTeal} fill={Colors.deepTeal} />
+              <Text style={[styles.ratingText, { fontSize: 11, color: Colors.deepTeal }]}>
+                {product.avg_rating ? product.avg_rating.toFixed(1) : 'New'}
+              </Text>
+              {product.review_count ? (
+                <Text style={[styles.reviewCount, { fontSize: 10 }]}>({product.review_count})</Text>
+              ) : null}
+            </View>
           </View>
         </View>
 
         <Text style={styles.cardDesc} numberOfLines={1}>{product.description}</Text>
+
+        {/* Rating Summary removed from here */}
 
         {/* Variant Selector */}
         <View style={styles.variantContainer}>
@@ -448,6 +486,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.deepTeal,
     fontWeight: '500',
+  },
+  headerSignInPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cream,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  headerSignInText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.deepTeal,
+  },
+  guestNotification: {
+    backgroundColor: Colors.orange,
+    marginHorizontal: 20,
+    marginTop: -10,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: Colors.orange,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  guestNotifIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestNotifTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.white,
+    marginBottom: 2,
+  },
+  guestNotifSub: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  guestNotifBtn: {
+    backgroundColor: Colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  guestNotifBtnText: {
+    color: Colors.orange,
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   // Scroll
@@ -768,5 +869,21 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '700',
     fontSize: 13,
+  },
+  ratingBrief: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  ratingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.charcoal,
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: '#888',
   },
 });

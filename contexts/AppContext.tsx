@@ -1,6 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { CartItem, User, Order, WalletTransaction, OrderStatus } from '@/types';
+import { CartItem, User, Order, WalletTransaction, OrderStatus, UserAddress } from '@/types';
 import { ProductService } from '@/services/ProductService';
 import { OrderService } from '@/services/OrderService';
 import { UserService } from '@/services/UserService';
@@ -15,8 +15,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     name: 'Guest User',
     phone: '',
     email: '',
-    is_first_order_completed: false,
     wallet_points: 150,
+    addresses: [],
     created_at: Date.now(),
   });
 
@@ -48,7 +48,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
               email: profile.email,
               phone: profile.phone || '',
               address: profile.address || '',
-              is_first_order_completed: profile.is_first_order_completed,
+              addresses: (profile.addresses && profile.addresses.length > 0) 
+                ? profile.addresses.reduce((acc: UserAddress[], curr) => {
+                    if (!acc.some(a => a.id === curr.id)) acc.push(curr);
+                    return acc;
+                  }, [])
+                : (profile.address ? [{
+                    id: 'primary-legacy',
+                    label: 'Primary',
+                    details: profile.address,
+                    isPrimary: true
+                  }] : []),
               wallet_points: profile.wallet_points,
               created_at: profile.created_at,
             });
@@ -72,7 +82,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           phone: '',
           email: '',
           address: '',
-          is_first_order_completed: false,
+          addresses: [],
           wallet_points: 0,
           created_at: Date.now(),
         });
@@ -182,6 +192,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     walletUsed: number = 0,
     note?: string,
     deliveryCharge: number = 0,
+    taxAmount: number = 0,
+    platformFee: number = 0,
+    discount: number = 0,
     paymentMethod: 'online' | 'cod' = 'cod',
     paymentDetails?: { payment_id: string; razorpay_order_id: string }
   ) => {
@@ -192,16 +205,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     try {
       const subtotal = cartTotal;
-      const discount = 0; // Implement discount logic if needed
-      // Note: firstOrderDiscount is calculated in checkout, so we might need to pass finalAmount directly or recalculate here.
-      // However, current implementation seems to calculate `finalAmount` internally.
-      // Let's assume for now that standard discount logic is handled differently or we are just persisting values.
-      // But based on Checkout.tsx: `finalTotal = cartTotal + tax - discount - wallet + delivery`.
-      // The `placeOrder` function calculates `finalAmount = subtotal - discount - walletUsed`. This is missing tax and deliveryCharge.
-      // We should update `finalAmount` calculation here to be accurate or accept it as parameter.
-      // For minimal invasive change, let's update calculation here to include deliveryCharge.
-
-      const finalAmount = subtotal - discount - walletUsed + deliveryCharge;
+      const finalAmount = subtotal + taxAmount + platformFee + deliveryCharge - discount - walletUsed;
 
       // Chicken Points: 1 point per 1 kg (total weight)
       // ... existing code ...
@@ -221,13 +225,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
             quantity: item.quantity,
             weight: item.weight,
             unit: item.product.unit,
-            price: itemPrice,
+            price: itemPrice * item.weight,
             ...(item.cuttingType ? { cuttingType: item.cuttingType } : {}),
           };
         }),
         total_amount: subtotal,
         discount,
-        delivery_charge: deliveryCharge, // Added field
+        tax_amount: taxAmount,
+        platform_fee: platformFee,
+        delivery_charge: deliveryCharge,
         wallet_used: walletUsed,
         final_amount: finalAmount,
         earned_points: Math.floor(cart.reduce((sum, item) => {
@@ -247,11 +253,21 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
       const result = await OrderService.createOrder(orderPayload);
 
-      // Update address if it's new/changed
-      if (address && address !== user.address) {
-        await UserService.updateUser(user.id, { address });
-        // Optimistic update
-        setUser((prev: User) => ({ ...prev, address }));
+      // Save address if it's new
+      const isNewAddress = !user.addresses?.some(a => a.details === address);
+      if (address && isNewAddress) {
+        const newAddrObj: UserAddress = {
+          id: `addr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          label: 'Other',
+          details: address,
+          isPrimary: false
+        };
+        await UserService.saveAddress(user.id, newAddrObj);
+        // Optimistic update of addresses list only
+        setUser((prev: User) => ({ 
+          ...prev, 
+          addresses: [...(prev.addresses || []), newAddrObj] 
+        }));
       }
 
       clearCart();
@@ -275,6 +291,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateCartItemPrice,
     clearCart,
     placeOrder,
+    isGuest: !authUser,
     updateUserProfile: async (data: Partial<User>) => {
       if (!user.id) return;
       await UserService.updateUser(user.id, data);
@@ -300,6 +317,34 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.error("Failed to cancel order", error);
         throw error;
       }
+    },
+    saveAddress: async (addressDetails: string, label: string = 'Other') => {
+      if (!user.id) return;
+      const newAddrObj: UserAddress = {
+        id: `addr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        label,
+        details: addressDetails,
+        isPrimary: (user.addresses || []).length === 0
+      };
+      await UserService.saveAddress(user.id, newAddrObj);
+      setUser((prev: User) => ({ 
+        ...prev, 
+        addresses: [...(prev.addresses || []), newAddrObj]
+      }));
+    },
+    removeAddress: async (address: string | UserAddress) => {
+      if (!user.id) return;
+      const addrObj = typeof address === 'string' 
+        ? user.addresses?.find(a => a.details === address)
+        : address;
+      
+      if (!addrObj) return;
+
+      await UserService.removeAddress(user.id, addrObj);
+      setUser((prev: User) => ({ 
+        ...prev, 
+        addresses: (prev.addresses || []).filter(a => a.id !== addrObj.id) 
+      }));
     }
   };
 });

@@ -17,6 +17,8 @@ export interface Product {
     increment: number;
     price_quantity?: number; // For "30 for 15 pieces" logic. Defaults to 1 if undefined.
     variants?: ProductVariant[];
+    avg_rating?: number;
+    review_count?: number;
 }
 
 export interface ProductVariant {
@@ -29,10 +31,17 @@ export interface UserProfile {
     name: string;
     phone: string;
     email: string;
-    is_first_order_completed: boolean;
     wallet_points: number;
     created_at: number; // Timestamp
     address?: string;
+    addresses?: UserAddress[];
+}
+
+export interface UserAddress {
+    id: string;
+    label: string;
+    details: string;
+    isPrimary?: boolean;
 }
 
 export type User = UserProfile;
@@ -81,9 +90,21 @@ export interface Order {
     address: string;
     delivery_slot?: string;
     note?: string;
+    tax_amount?: number;
+    platform_fee?: number;
     display_id?: string;
     payment_id?: string;
     razorpay_order_id?: string;
     payment_method?: 'online' | 'cod';
     actual_payment_mode?: 'upi' | 'cash' | 'delivery';
+}
+
+export interface Review {
+    id: string;
+    user_id: string;
+    user_name: string;
+    product_id: string;
+    rating: number; // 1-5
+    comment: string;
+    created_at: number;
 }
