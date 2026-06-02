@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, TicketPercent, Sparkles } from 'lucide-react-native';
+import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 
@@ -263,47 +263,6 @@ const styles = StyleSheet.create({
     paddingTop: 40, // push down for header overlap
   },
 
-  // Discount Banner
-  discountBanner: {
-    backgroundColor: Colors.deepTealDark,
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: Colors.deepTeal,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  discountIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  discountContent: {
-    flex: 1,
-  },
-  discountTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.white,
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  discountSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
-    lineHeight: 18,
-  },
-
   // Cart Items
   cartList: {
     gap: 16,
@@ -406,13 +365,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.charcoal,
-  },
-  discountLabel: {
-    color: Colors.priceUp,
-  },
-  discountValue: {
-    color: Colors.priceUp,
-    fontWeight: '700',
   },
   divider: {
     height: 1,

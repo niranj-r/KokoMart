@@ -51,8 +51,7 @@ export default function CheckoutScreen() {
   const [newAddrDetails, setNewAddrDetails] = useState('');
   const [isSavingNewAddr, setIsSavingNewAddr] = useState(false);
 
-  // const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
-  const firstOrderDiscount = 0;
+
 
   // Tax Calculation
   const taxRate = 0.05; // 5%
@@ -71,10 +70,10 @@ export default function CheckoutScreen() {
     deliveryCharge = Math.ceil((deliveryDistance - freeDistance) * ratePerKm);
   }
 
-  const maxWalletRedemption = Math.min(user.wallet_points, cartTotal - firstOrderDiscount + taxAmount + handlingFee + deliveryCharge);
+  const maxWalletRedemption = Math.min(user.wallet_points, cartTotal + taxAmount + handlingFee + deliveryCharge);
   const walletDeduction = useWalletPoints ? maxWalletRedemption : 0;
 
-  const finalTotal = Math.max(0, cartTotal + taxAmount + handlingFee + deliveryCharge - firstOrderDiscount - walletDeduction);
+  const finalTotal = Math.max(0, cartTotal + taxAmount + handlingFee + deliveryCharge - walletDeduction);
 
   useEffect(() => {
     // Attempt to get location on mount if address is empty or just to check
@@ -423,7 +422,6 @@ export default function CheckoutScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* First Order Discount Banner Removed */}
 
         {/* Guest Sign-in Prompt */}
         {isGuest && (
@@ -706,7 +704,6 @@ export default function CheckoutScreen() {
               </Text>
             </View>
 
-            {/* New User Discount Row Removed */}
 
             {useWalletPoints && walletDeduction > 0 && (
               <View style={styles.summaryRow}>

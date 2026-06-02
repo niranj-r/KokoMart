@@ -23,6 +23,11 @@ service cloud.firestore {
       allow update, delete: if false; // Lock down modifications for now
     }
     
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
     // Users:
     // - Users can read and write their own profile
     match /users/{userId} {

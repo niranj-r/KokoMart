@@ -14,12 +14,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag, Plus, Minus, LogIn, Star, SlidersHorizontal, X } from 'lucide-react-native';
+import { Search, TrendingUp, TrendingDown, ShoppingCart, ArrowRight, ShoppingBag, Plus, Minus, LogIn, Star, SlidersHorizontal, X, Clock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import { Product } from '@/types';
 import CuttingModal from '@/components/CuttingModal';
 import { getNextAvailableDay, isProductAvailableToday } from '@/utils/getNextAvailableDay';
+import { db } from '@/config/firebaseConfig';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +35,21 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedSort, setSelectedSort] = useState<'default' | 'price_asc' | 'price_desc' | 'available'>('default');
   const tickerPosition = useRef(new Animated.Value(0)).current;
+
+  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string } | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "store"), (docSnap) => {
+      if (docSnap.exists()) {
+        setStoreSettings(docSnap.data() as { opening_time?: string });
+      }
+    }, (err) => {
+      console.log("Error loading store settings", err);
+    });
+    return () => unsub();
+  }, []);
+
+  const allProductsOutOfStock = products.length > 0 && products.every(p => !isProductAvailableToday(p));
 
   // Ticker Animation
   useEffect(() => {
@@ -253,6 +271,30 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {allProductsOutOfStock && (
+          <View style={styles.bannerContainer}>
+            <LinearGradient
+              colors={['#63020c', '#8f0503']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0.8 }}
+              style={styles.bannerCard}
+            >
+              <View style={styles.bannerIconBg}>
+                <Clock size={24} color={Colors.white} />
+              </View>
+              <View style={styles.bannerTextContainer}>
+                <View style={styles.bannerHeaderRow}>
+                  <Text style={styles.bannerTitle}>Store Opening Soon</Text>
+                  <View style={styles.pulseDot} />
+                </View>
+                <Text style={styles.bannerSubtitle}>
+                  Next scheduled opening: {storeSettings?.opening_time || 'Check back soon'}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
         {/* Guest Sign-in Notification */}
         {isGuest && (
           <View style={styles.guestNotification}>
@@ -1058,5 +1100,62 @@ const styles = StyleSheet.create({
   reviewCount: {
     fontSize: 12,
     color: '#888',
+  },
+  bannerContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  bannerCard: {
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    shadowColor: '#8f0503',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  bannerIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  bannerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  bannerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fffeefff',
+    letterSpacing: 0.3,
+  },
+  bannerSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF1D6',
+    opacity: 0.9,
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fffeefff',
+    opacity: 0.8,
   },
 });
