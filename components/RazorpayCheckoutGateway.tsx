@@ -3,6 +3,7 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Colors from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 
 interface RazorpayGatewayProps {
     amount: number;
@@ -26,7 +27,7 @@ export default function RazorpayCheckoutGateway({
     onError
 }: RazorpayGatewayProps) {
     const insets = useSafeAreaInsets();
-    const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '';
+    const RAZORPAY_KEY = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || Constants.expoConfig?.extra?.razorpayKeyId || '').trim();
 
     const htmlContent = `
     <!DOCTYPE html>

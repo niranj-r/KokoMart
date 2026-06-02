@@ -19,11 +19,12 @@ import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
-import { calculateDistance, calculateDeliveryTime, STORE_LOCATION } from '@/utils/locationUtils';
+import { calculateDistance, calculateDeliveryTime, STORE_LOCATION, getGoogleMapsDistance } from '@/utils/locationUtils';
 import OrderSuccessModal from '@/components/OrderSuccessModal';
 import RazorpayCheckoutGateway from '@/components/RazorpayCheckoutGateway';
 import { encode } from 'base-64';
 import Constants from 'expo-constants';
+import { firebaseConfig } from '@/config/firebaseConfig';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function CheckoutScreen() {
   const [note, setNote] = useState('');
   const [orderSuccessVisible, setOrderSuccessVisible] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('cod');
   const [showRazorpayGateway, setShowRazorpayGateway] = useState(false);
   const [currentRazorpayOrderId, setCurrentRazorpayOrderId] = useState('');
 
@@ -42,6 +43,7 @@ export default function CheckoutScreen() {
   const [deliveryDistance, setDeliveryDistance] = useState<number | null>(null);
   const [deliveryTime, setDeliveryTime] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [lastCalculatedAddress, setLastCalculatedAddress] = useState('');
 
   // New Address In Checkout State
   const [showAddAddressInline, setShowAddAddressInline] = useState(false);
@@ -56,9 +58,9 @@ export default function CheckoutScreen() {
   const taxRate = 0.05; // 5%
   const taxAmount = cartTotal * taxRate;
 
-  // Handling Fee Calculation
-  const handlingFeeRate = 0.03; // 3%
-  const handlingFee = cartTotal * handlingFeeRate;
+  // Platform Fee Calculation (0%)
+  const platformFeeRate = 0.00; // 0%
+  const handlingFee = cartTotal * platformFeeRate;
 
   // Delivery Charge Calculation
   const freeDistance = 7;
@@ -81,14 +83,14 @@ export default function CheckoutScreen() {
 
   // Auto-calculate delivery when address changes
   useEffect(() => {
-    if (!address.trim()) return;
+    if (!address.trim() || address === lastCalculatedAddress) return;
 
     const timer = setTimeout(() => {
       calculateFromAddress();
     }, 1500); // 1.5s debounce
 
     return () => clearTimeout(timer);
-  }, [address]);
+  }, [address, lastCalculatedAddress]);
 
   const getCurrentLocation = async () => {
     setLocationLoading(true);
@@ -104,17 +106,25 @@ export default function CheckoutScreen() {
       let location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
 
-      const dist = calculateDistance(
-        latitude,
-        longitude,
-        STORE_LOCATION.latitude,
-        STORE_LOCATION.longitude
-      );
+      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || firebaseConfig.apiKey || '';
+      let dist = 0;
+      let time = 0;
 
-      const roadDist = dist * 1.4;
+      // --- 1. GOOGLE ROUTE DISTANCE (PRIMARY) ---
+      const googleData = await getGoogleMapsDistance(latitude, longitude, STORE_LOCATION.latitude, STORE_LOCATION.longitude, apiKey);
+      if (googleData) {
+        dist = googleData.distanceKm;
+        time = calculateDeliveryTime(dist, true); // True flag skips the curvature multiplier
+      } 
+      // --- 2. HAVERSINE DISTANCE (FALLBACK) ---
+      else {
+        const straightDist = calculateDistance(latitude, longitude, STORE_LOCATION.latitude, STORE_LOCATION.longitude);
+        dist = straightDist * 1.4;                  // Curve multiplier applied to straight line
+        time = calculateDeliveryTime(straightDist, false); // False flag adds 1.4x factor to time calculation
+      }
 
-      setDeliveryDistance(parseFloat(roadDist.toFixed(1)));
-      setDeliveryTime(calculateDeliveryTime(dist));
+      setDeliveryDistance(parseFloat(dist.toFixed(1)));
+      setDeliveryTime(time);
 
       if (!address) {
         let reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -122,6 +132,7 @@ export default function CheckoutScreen() {
           const addr = reverseGeocode[0];
           const formattedAddress = `${addr.name || ''} ${addr.street || ''}, ${addr.city || ''}, ${addr.region || ''} ${addr.postalCode || ''}`.trim();
           setAddress(formattedAddress);
+          setLastCalculatedAddress(formattedAddress);
         }
       }
 
@@ -140,13 +151,20 @@ export default function CheckoutScreen() {
     setLocationError(null);
 
     const tryGeocode = async (addr: string) => {
+      // Add local region context if not already present to ensure highly accurate local geocoding
+      let query = addr;
+      const lowerAddr = addr.toLowerCase();
+      if (!lowerAddr.includes('trivandrum') && !lowerAddr.includes('thiruvananthapuram')) {
+        query = `${addr}, Trivandrum, Kerala, India`;
+      }
+
       try {
-        const result = await Location.geocodeAsync(addr);
+        const result = await Location.geocodeAsync(query);
         if (result.length > 0) return { lat: result[0].latitude, lon: result[0].longitude };
       } catch (e) { }
 
       try {
-        const encoded = encodeURIComponent(addr);
+        const encoded = encodeURIComponent(query);
         const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encoded}`, {
           headers: { 'User-Agent': 'MeatUPApp/1.0' }
         });
@@ -166,14 +184,19 @@ export default function CheckoutScreen() {
 
       let coords = await tryGeocode(address);
 
+      // Progressive fallback: strip items from the beginning to geocode general locality/street
       if (!coords) {
         const parts = address.split(',').map((p: string) => p.trim());
-        if (parts.length > 2) {
-          const simpleAddress = parts.slice(-3).join(', ');
-          coords = await tryGeocode(simpleAddress);
+        for (let i = 1; i < parts.length; i++) {
+          const subAddress = parts.slice(i).join(', ');
+          if (subAddress.trim()) {
+            coords = await tryGeocode(subAddress);
+            if (coords) break;
+          }
         }
       }
 
+      // Final fallback: match and geocode just the 6-digit pincode if present
       if (!coords) {
         const pincodeMatch = address.match(/\b\d{6}\b/);
         if (pincodeMatch) {
@@ -187,22 +210,32 @@ export default function CheckoutScreen() {
       }
 
       const { lat, lon } = coords;
-      const dist = calculateDistance(
-        lat,
-        lon,
-        STORE_LOCATION.latitude,
-        STORE_LOCATION.longitude
-      );
+      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || firebaseConfig.apiKey || '';
+      let dist = 0;
+      let time = 0;
 
-      const roadDist = dist * 1.4;
-      if (roadDist > 25) {
-        setDeliveryDistance(parseFloat(roadDist.toFixed(1)));
+      // --- 1. GOOGLE ROUTE DISTANCE (PRIMARY) ---
+      const googleData = await getGoogleMapsDistance(lat, lon, STORE_LOCATION.latitude, STORE_LOCATION.longitude, apiKey);
+      if (googleData) {
+        dist = googleData.distanceKm;
+        time = calculateDeliveryTime(dist, true); // True flag skips the curvature multiplier
+      } 
+      // --- 2. HAVERSINE DISTANCE (FALLBACK) ---
+      else {
+        const straightDist = calculateDistance(lat, lon, STORE_LOCATION.latitude, STORE_LOCATION.longitude);
+        dist = straightDist * 1.4;                  // Curve multiplier applied to straight line
+        time = calculateDeliveryTime(straightDist, false); // False flag adds 1.4x factor to time calculation
+      }
+
+      if (dist > 25) {
+        setDeliveryDistance(parseFloat(dist.toFixed(1)));
         setLocationError('Delivery is restricted to 25km from our store. Please choose a closer location.');
         return;
       }
 
-      setDeliveryDistance(parseFloat(roadDist.toFixed(1)));
-      setDeliveryTime(calculateDeliveryTime(dist));
+      setDeliveryDistance(parseFloat(dist.toFixed(1)));
+      setDeliveryTime(time);
+      setLastCalculatedAddress(address);
 
     } catch (error) {
       setLocationError('Error calculating distance');
@@ -271,17 +304,19 @@ export default function CheckoutScreen() {
     } else {
       // Razorpay Online Payment Flow - Direct Client-Side WebView (No Firebase / Expo Go Compatible)
       try {
-        const RAZORPAY_KEY_ID = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '').trim();
-        const RAZORPAY_KEY_SECRET = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '').trim();
+        const RAZORPAY_KEY_ID = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || Constants.expoConfig?.extra?.razorpayKeyId || '').trim();
+        const RAZORPAY_KEY_SECRET = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || Constants.expoConfig?.extra?.razorpayKeySecret || '').trim();
 
-        console.log("DEBUG: RAZORPAY KEY ID:", RAZORPAY_KEY_ID);
+        console.log("DEBUG: Razorpay Key Info", {
+          KEY_ID_FOUND: !!RAZORPAY_KEY_ID,
+          KEY_SECRET_FOUND: !!RAZORPAY_KEY_SECRET,
+          FROM_ENV: !!process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+          FROM_EXTRA: !!Constants.expoConfig?.extra?.razorpayKeyId
+        });
         
         if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-          console.error("DEBUG: Razorpay keys are MISSING from Constants.expoConfig.extra.", { 
-            ID_EXISTS: !!RAZORPAY_KEY_ID, 
-            SECRET_EXISTS: !!RAZORPAY_KEY_SECRET 
-          });
-          Alert.alert('Configuration Error', 'Razorpay keys are missing. Please ensure your .env file is correctly set up and restart your Expo server.');
+          console.error("DEBUG: Razorpay keys are MISSING from both process.env and Constants.expoConfig.extra.");
+          Alert.alert('Configuration Error', 'Razorpay keys are missing. Please ensure your .env file is correctly set up and restart your Expo server with "npx expo start --clear".');
           return;
         }
 
@@ -660,7 +695,7 @@ export default function CheckoutScreen() {
             </View>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Handling Fee (3%)</Text>
+              <Text style={styles.summaryLabel}>Platform Fee (0%)</Text>
               <Text style={styles.summaryValue}>+₹{handlingFee.toFixed(2)}</Text>
             </View>
 
@@ -693,25 +728,7 @@ export default function CheckoutScreen() {
               <TouchableOpacity
                 style={[
                   styles.paymentMethodCard,
-                  paymentMethod === 'online' && styles.paymentMethodCardActive
-                ]}
-                onPress={() => setPaymentMethod('online')}
-              >
-                <View style={[styles.radioCircle, paymentMethod === 'online' && styles.radioCircleActive]}>
-                  {paymentMethod === 'online' && <View style={styles.radioInner} />}
-                </View>
-                <Wallet size={20} color={paymentMethod === 'online' ? Colors.deepTeal : '#888'} />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={[styles.pmTitle, paymentMethod === 'online' && styles.pmTitleActive]}>Pay Online</Text>
-                  <Text style={styles.pmSub}>UPI, Cards, Wallets, NetBanking</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.paymentMethodCard,
-                  paymentMethod === 'cod' && styles.paymentMethodCardActive,
-                  { marginTop: 12 }
+                  paymentMethod === 'cod' && styles.paymentMethodCardActive
                 ]}
                 onPress={() => setPaymentMethod('cod')}
               >

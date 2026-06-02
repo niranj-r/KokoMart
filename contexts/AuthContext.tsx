@@ -6,7 +6,10 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
-    updateProfile
+    updateProfile,
+    signInWithPhoneNumber,
+    ApplicationVerifier,
+    ConfirmationResult
 } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { auth } from '@/config/firebaseConfig';
@@ -21,6 +24,8 @@ interface AuthState {
     signIn: (email: string, pass: string, silent?: boolean) => Promise<void>;
     signUp: (email: string, pass: string, name: string, phone: string, address: string, silent?: boolean) => Promise<void>;
     logout: (silent?: boolean) => Promise<void>;
+    signInWithPhone: (phoneNumber: string, appVerifier: ApplicationVerifier) => Promise<ConfirmationResult>;
+    confirmCode: (code: string) => Promise<User>;
 }
 
 export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
@@ -29,19 +34,32 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let unsubscribeProfile: (() => void) | undefined;
         // Listen for authentication state changes
-        const unsubscribe = onAuthStateChanged(auth, async (usr) => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (usr) => {
             console.log("[AuthContext] User state changed:", usr ? usr.uid : "No user");
             setUser(usr);
+            
+            if (unsubscribeProfile) {
+                unsubscribeProfile();
+                unsubscribeProfile = undefined;
+            }
+
             if (usr) {
-                const profile = await UserService.getUser(usr.uid);
-                setUserProfile(profile);
+                unsubscribeProfile = UserService.subscribeToUser(usr.uid, (profile) => {
+                    console.log("[AuthContext] Profile updated:", profile ? "Profile loaded" : "No profile yet");
+                    setUserProfile(profile);
+                    setLoading(false);
+                });
             } else {
                 setUserProfile(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
-        return unsubscribe;
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeProfile) unsubscribeProfile();
+        };
     }, []);
 
     const signIn = async (email: string, pass: string, silent: boolean = false) => {
@@ -102,6 +120,38 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
 
 
 
+    const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+    const signInWithPhone = async (phoneNumber: string, appVerifier: ApplicationVerifier) => {
+        try {
+            setLoading(true);
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
+            return result;
+        } catch (error) {
+            console.error("[AuthContext] signInWithPhone Error:", error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmCode = async (code: string) => {
+        try {
+            setLoading(true);
+            if (!confirmationResult) {
+                throw new Error("No active verification session");
+            }
+            const credential = await confirmationResult.confirm(code);
+            return credential.user;
+        } catch (error) {
+            console.error("[AuthContext] confirmCode Error:", error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const logout = async (silent: boolean = false) => {
         try {
             await signOut(auth);
@@ -120,5 +170,7 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
         signIn,
         signUp,
         logout,
+        signInWithPhone,
+        confirmCode,
     };
 });

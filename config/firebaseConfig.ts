@@ -36,4 +36,4 @@ if (typeof getReactNativePersistence === 'function') {
 // Initialize Firestore
 const db = getFirestore(app);
 
-export { auth, db };
+export { auth, db, firebaseConfig };
