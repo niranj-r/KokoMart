@@ -20,12 +20,13 @@ import { Review } from '@/types';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import CuttingModal from '@/components/CuttingModal';
+import StatusBanner from '@/components/StatusBanner';
 import { getNextAvailableDay, isProductAvailableToday } from '@/utils/getNextAvailableDay';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { products, addToCart, user, isGuest } = useApp();
+  const { products, addToCart, user, isGuest, cartTotalWeight } = useApp();
   const [selectedWeight, setSelectedWeight] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [modalVisible, setModalVisible] = useState(false);
@@ -36,6 +37,17 @@ export default function ProductDetailScreen() {
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  
+  // Status Banner
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const [bannerType, setBannerType] = useState<'success' | 'error'>('error');
+  const [bannerMessage, setBannerMessage] = useState('');
+
+  const showBanner = (type: 'success' | 'error', message: string) => {
+    setBannerType(type);
+    setBannerMessage(message);
+    setBannerVisible(true);
+  };
 
   const product = products.find((p) => p.id === id);
 
@@ -109,7 +121,12 @@ export default function ProductDetailScreen() {
 
   const handleCuttingTypeSelect = (cuttingType: string) => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(product.id, 1, effectiveWeight, cuttingType);
+      const res = addToCart(product.id, 1, effectiveWeight, cuttingType);
+      if (res && !res.success) {
+        showBanner('error', res.message || 'Limit exceeded');
+        setModalVisible(false);
+        return; // Don't navigate back if there's an error
+      }
     }
     setModalVisible(false);
     router.back();
@@ -117,6 +134,12 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBanner 
+        visible={bannerVisible} 
+        message={bannerMessage} 
+        type={bannerType} 
+        onHide={() => setBannerVisible(false)} 
+      />
       <Stack.Screen
         options={{
           headerShown: false, // Hide default header for custom look
@@ -223,7 +246,18 @@ export default function ProductDetailScreen() {
                 <Text style={styles.quantityText}>{quantity}</Text>
                 <TouchableOpacity
                   style={styles.quantityButton}
-                  onPress={() => setQuantity(quantity + 1)}
+                  onPress={() => {
+                    const unit = product.unit.toUpperCase();
+                    let itemWeightInKg = 0;
+                    if (unit === 'KG') itemWeightInKg = effectiveWeight;
+                    else if (unit === 'G') itemWeightInKg = effectiveWeight / 1000;
+                    
+                    if (cartTotalWeight + ((quantity + 1) * itemWeightInKg) > 25) {
+                      showBanner('error', 'You can only order up to 25kg in a single order.');
+                      return;
+                    }
+                    setQuantity(quantity + 1);
+                  }}
                 >
                   <Plus size={18} color={Colors.white} />
                 </TouchableOpacity>

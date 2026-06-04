@@ -84,12 +84,26 @@ export default function ProfileScreen() {
   };
 
   const handleSaveProfile = async () => {
+    if (!editName.trim() || editName.trim().length < 2) {
+      showBanner('error', 'Please enter a valid name (at least 2 characters).');
+      return;
+    }
+    if (editPhone && !/^\d{10}$/.test(editPhone)) {
+      showBanner('error', 'Please enter a valid 10-digit phone number.');
+      return;
+    }
+    if (editAddress && editAddress.trim().length < 10) {
+      showBanner('error', 'Please enter a complete address (at least 10 characters).');
+      return;
+    }
+
     await updateUserProfile({
       name: editName,
       phone: editPhone,
       address: editAddress,
     });
     setIsEditing(false);
+    showBanner('success', 'Profile updated successfully');
   };
 
   const handleCallSupport = () => {
@@ -97,7 +111,14 @@ export default function ProfileScreen() {
   };
 
   const handleAddAddress = async () => {
-    if (!newAddressText.trim()) return;
+    if (!newAddressLabel.trim()) {
+      showBanner('error', 'Please enter an address label.');
+      return;
+    }
+    if (!newAddressText.trim() || newAddressText.trim().length < 10) {
+      showBanner('error', 'Please enter a complete address (at least 10 characters).');
+      return;
+    }
     setIsSavingAddress(true);
     try {
       await saveAddress(newAddressText.trim(), newAddressLabel.trim() || 'Home');

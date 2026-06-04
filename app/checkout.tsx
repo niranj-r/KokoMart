@@ -245,7 +245,14 @@ export default function CheckoutScreen() {
   };
 
   const handleAddNewAddress = async () => {
-    if (!newAddrDetails.trim()) return;
+    if (!newAddrLabel.trim()) {
+      Alert.alert('Error', 'Please enter a label for the address (e.g., Home, Work).');
+      return;
+    }
+    if (!newAddrDetails.trim() || newAddrDetails.trim().length < 10) {
+      Alert.alert('Error', 'Please enter a complete address (at least 10 characters).');
+      return;
+    }
     setIsSavingNewAddr(true);
     try {
       await saveAddress(newAddrDetails.trim(), newAddrLabel.trim() || 'Home');

@@ -15,16 +15,16 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.kokomart-chicken-delivery"
+      "bundleIdentifier": "app.rork.meatup.delivery"
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 1,
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.kokomart.chickendelivery",
+      "package": "app.rork.meatup.delivery",
       "googleServicesFile": "./google-services.json"
     },
     "web": {

@@ -15,11 +15,22 @@ import { useRouter } from 'expo-router';
 import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
+import StatusBanner from '@/components/StatusBanner';
 
 export default function CartScreen() {
   const router = useRouter();
   const { cart, addToCart, removeFromCart, cartTotal, user } = useApp();
   const insets = useSafeAreaInsets();
+  
+  const [bannerVisible, setBannerVisible] = React.useState(false);
+  const [bannerType, setBannerType] = React.useState<'success' | 'error'>('error');
+  const [bannerMessage, setBannerMessage] = React.useState('');
+
+  const showBanner = (type: 'success' | 'error', message: string) => {
+    setBannerType(type);
+    setBannerMessage(message);
+    setBannerVisible(true);
+  };
 
   const finalTotal = cartTotal;
 
@@ -60,6 +71,12 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBanner 
+        visible={bannerVisible} 
+        message={bannerMessage} 
+        type={bannerType} 
+        onHide={() => setBannerVisible(false)} 
+      />
       {renderHeader()}
 
       <ScrollView
@@ -105,7 +122,12 @@ export default function CartScreen() {
                 <Text style={styles.quantityText}>{item.quantity}</Text>
                 <TouchableOpacity
                   style={styles.controlBtn}
-                  onPress={() => addToCart(item.product.id, 1, item.weight, item.cuttingType!)}
+                  onPress={() => {
+                    const res = addToCart(item.product.id, 1, item.weight, item.cuttingType!);
+                    if (res && !res.success) {
+                      showBanner('error', res.message || 'Limit exceeded');
+                    }
+                  }}
                 >
                   <Plus size={16} color={Colors.charcoal} />
                 </TouchableOpacity>

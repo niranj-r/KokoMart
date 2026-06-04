@@ -120,9 +120,31 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [orders]);
 
+  const cartTotalWeight = useMemo(() => {
+    return cart.reduce((total, item) => {
+      const itemUnit = item.product.unit.toUpperCase();
+      if (itemUnit === 'KG') return total + (item.weight * item.quantity);
+      if (itemUnit === 'G') return total + ((item.weight * item.quantity) / 1000);
+      return total;
+    }, 0);
+  }, [cart]);
+
   const addToCart = (productId: string, quantity: number, weight: number, cuttingType?: string) => {
     const product = products.find((p) => p.id === productId);
-    if (!product) return;
+    if (!product) return { success: false, message: 'Product not found' };
+
+    // Calculate additional weight in KG
+    const unit = product.unit.toUpperCase();
+    let additionalWeightInKg = 0;
+    if (unit === 'KG') {
+      additionalWeightInKg = weight * quantity;
+    } else if (unit === 'G') {
+      additionalWeightInKg = (weight * quantity) / 1000;
+    }
+
+    if (cartTotalWeight + additionalWeightInKg > 25) {
+      return { success: false, message: 'You can only order up to 25kg in a single order.' };
+    }
 
     setCart((prev: CartItem[]) => {
       const existing = prev.find((item) => item.product.id === productId && item.weight === weight && item.cuttingType === cuttingType);
@@ -285,6 +307,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     products,
     cartTotal,
     cartItemCount,
+    cartTotalWeight,
     addToCart,
     removeFromCart,
     updateCartItemPrice,

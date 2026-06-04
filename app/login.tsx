@@ -88,7 +88,7 @@ export default function LoginScreen() {
   }, []);
 
   const handleSendOtp = async () => {
-    if (!phoneNumber || phoneNumber.length !== 10) {
+    if (!phoneNumber || !/^\d{10}$/.test(phoneNumber)) {
       showBanner('error', 'Please enter a valid 10-digit phone number.');
       return;
     }
@@ -132,7 +132,7 @@ export default function LoginScreen() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otpCode || otpCode.length !== 6) {
+    if (!otpCode || !/^\d{6}$/.test(otpCode)) {
       showBanner('error', 'Please enter the 6-digit verification code.');
       return;
     }
@@ -171,8 +171,23 @@ export default function LoginScreen() {
   };
 
   const handleCreateAccount = async () => {
-    if (!name || !houseDetails || !landmark || !place || !city || !pincode) {
-      showBanner('error', 'Please fill in all fields.');
+    if (!name.trim() || name.trim().length < 2) {
+      showBanner('error', 'Please enter a valid name (at least 2 characters).');
+      return;
+    }
+    
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      showBanner('error', 'Please enter a valid email address.');
+      return;
+    }
+    
+    if (!houseDetails.trim() || !landmark.trim() || !place.trim() || !city.trim() || !pincode.trim()) {
+      showBanner('error', 'Please fill in all address fields.');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      showBanner('error', 'Please enter a valid 6-digit pincode.');
       return;
     }
 
@@ -655,7 +670,7 @@ const styles = StyleSheet.create({
     color: Colors.charcoal,
   },
   webviewContainer: {
-    height: 360,
+    height: 600,
     width: '100%',
     borderRadius: 16,
     overflow: 'hidden',
