@@ -11,14 +11,14 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0E4F63"
+      "backgroundColor": "#63020"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.rork.meatup.delivery"
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
