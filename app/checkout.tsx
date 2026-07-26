@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles, AlertCircle, Plus, X } from 'lucide-react-native';
+import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles, AlertCircle, Plus, X, CreditCard } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
@@ -22,7 +22,8 @@ import { useApp } from '@/contexts/AppContext';
 import { calculateDistance, calculateDeliveryTime, STORE_LOCATION, getGoogleMapsDistance } from '@/utils/locationUtils';
 import OrderSuccessModal from '@/components/OrderSuccessModal';
 import RazorpayCheckoutGateway from '@/components/RazorpayCheckoutGateway';
-import { encode } from 'base-64';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/config/firebaseConfig';
 import Constants from 'expo-constants';
 import { firebaseConfig } from '@/config/firebaseConfig';
 
@@ -307,57 +308,18 @@ export default function CheckoutScreen() {
         console.error(error);
       }
     } else {
-      // Razorpay Online Payment Flow - Direct Client-Side WebView (No Firebase / Expo Go Compatible)
+      // Razorpay Online Payment Flow - Securely via Firebase Functions
       try {
-        const RAZORPAY_KEY_ID = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || Constants.expoConfig?.extra?.razorpayKeyId || '').trim();
-        const RAZORPAY_KEY_SECRET = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || Constants.expoConfig?.extra?.razorpayKeySecret || '').trim();
-
-        console.log("DEBUG: Razorpay Key Info", {
-          KEY_ID_FOUND: !!RAZORPAY_KEY_ID,
-          KEY_SECRET_FOUND: !!RAZORPAY_KEY_SECRET,
-          FROM_ENV: !!process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
-          FROM_EXTRA: !!Constants.expoConfig?.extra?.razorpayKeyId
-        });
+        console.log("DEBUG: Calling createRazorpayOrder Firebase Function...");
         
-        if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-          console.error("DEBUG: Razorpay keys are MISSING from both process.env and Constants.expoConfig.extra.");
-          Alert.alert('Configuration Error', 'Razorpay keys are missing. Please ensure your .env file is correctly set up and restart your Expo server with "npx expo start --clear".');
-          return;
-        }
-
-        // Standard Base64 Encoding for Basic Auth
-        const credentials = `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`;
-        const basicAuth = encode(credentials).replace(/\s+/g, ''); // Ensure no spaces/newlines
+        // 1. Create Order via Firebase Cloud Function
+        const createOrder = httpsCallable(functions, 'createRazorpayOrder');
+        const response = await createOrder({ amount: finalTotal, currency: 'INR' });
         
-        console.log("DEBUG: Key Lengths", {
-          ID_LEN: RAZORPAY_KEY_ID.length,
-          SECRET_LEN: RAZORPAY_KEY_SECRET.length
-        });
-
-        // console.log("DEBUG: Auth Header Preview:", basicAuth.substring(0, 10)); // Hidden for security in live mode
-
-        // 1. Create Order on Razorpay directly from client (Insecure but complying with "no firebase")
-        const response = await fetch('https://api.razorpay.com/v1/orders', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Basic ${basicAuth}`,
-          },
-          body: JSON.stringify({
-            amount: Math.round(finalTotal * 100), // convert to paise
-            currency: 'INR',
-            receipt: `receipt_order_${Date.now()}`
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Razorpay API Error Response:", errorData);
-          throw new Error("Failed to create order on Razorpay");
-        }
-
-        const orderData = await response.json();
+        const orderData = response.data as { id: string; amount: number; currency: string };
         const razorpayOrderId = orderData.id;
+        
+        console.log("DEBUG: Razorpay Order created successfully via Cloud Function", razorpayOrderId);
 
         // 2. Open WebView Gateway
         setCurrentRazorpayOrderId(razorpayOrderId);
@@ -746,6 +708,24 @@ export default function CheckoutScreen() {
                 <View style={{ marginLeft: 12 }}>
                   <Text style={[styles.pmTitle, paymentMethod === 'cod' && styles.pmTitleActive]}>Cash on Delivery</Text>
                   <Text style={styles.pmSub}>Pay cash at the time of delivery</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.paymentMethodCard,
+                  paymentMethod === 'online' && styles.paymentMethodCardActive,
+                  { marginTop: 12 }
+                ]}
+                onPress={() => setPaymentMethod('online')}
+              >
+                <View style={[styles.radioCircle, paymentMethod === 'online' && styles.radioCircleActive]}>
+                  {paymentMethod === 'online' && <View style={styles.radioInner} />}
+                </View>
+                <CreditCard size={20} color={paymentMethod === 'online' ? Colors.deepTeal : '#888'} />
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={[styles.pmTitle, paymentMethod === 'online' && styles.pmTitleActive]}>Pay Online (Razorpay)</Text>
+                  <Text style={styles.pmSub}>UPI, Cards, Netbanking, Wallets</Text>
                 </View>
               </TouchableOpacity>
             </View>
