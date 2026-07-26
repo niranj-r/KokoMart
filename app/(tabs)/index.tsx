@@ -36,12 +36,12 @@ export default function HomeScreen() {
   const [selectedSort, setSelectedSort] = useState<'default' | 'price_asc' | 'price_desc' | 'available'>('default');
   const tickerPosition = useRef(new Animated.Value(0)).current;
 
-  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string, offer_banner_url?: string } | null>(null);
+  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string, offer_banner_url?: string, offer_banner_urls?: string[] } | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "store"), (docSnap) => {
       if (docSnap.exists()) {
-        setStoreSettings(docSnap.data() as { opening_time?: string, offer_banner_url?: string });
+        setStoreSettings(docSnap.data() as { opening_time?: string, offer_banner_url?: string, offer_banner_urls?: string[] });
       }
     }, (err) => {
       console.log("Error loading store settings", err);
@@ -275,14 +275,12 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {storeSettings?.offer_banner_url && (
-          <View style={styles.offerBannerContainer}>
-            <Image 
-              source={{ uri: storeSettings.offer_banner_url }} 
-              style={styles.offerBannerImage}
-            />
-          </View>
-        )}
+        {(() => {
+          const banners = storeSettings?.offer_banner_urls || (storeSettings?.offer_banner_url ? [storeSettings.offer_banner_url] : []);
+          if (banners.length === 0) return null;
+          
+          return <AutoBannerCarousel banners={banners} />;
+        })()}
         
         {allProductsOutOfStock && (
           <View style={styles.bannerContainer}>
@@ -400,6 +398,72 @@ export default function HomeScreen() {
 }
 
 // Subcomponents
+
+function AutoBannerCarousel({ banners }: { banners: string[] }) {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    
+    const intervalId = setInterval(() => {
+      let nextIndex = currentIndex + 1;
+      if (nextIndex >= banners.length) {
+        nextIndex = 0;
+      }
+      scrollViewRef.current?.scrollTo({
+        x: nextIndex * width,
+        animated: true,
+      });
+      setCurrentIndex(nextIndex);
+    }, 4000); // 4 seconds per slide
+
+    return () => clearInterval(intervalId);
+  }, [currentIndex, banners.length]);
+
+  const handleScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / width);
+    if (index !== currentIndex) {
+      setCurrentIndex(index);
+    }
+  };
+
+  return (
+    <View style={styles.offerBannerContainer}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {banners.map((url, idx) => (
+          <View key={idx} style={styles.offerBannerWrapper}>
+            <Image 
+              source={{ uri: url }} 
+              style={styles.offerBannerImage}
+            />
+          </View>
+        ))}
+      </ScrollView>
+      {banners.length > 1 && (
+        <View style={styles.paginationContainer}>
+          {banners.map((_, idx) => (
+            <View 
+              key={idx} 
+              style={[
+                styles.paginationDot, 
+                currentIndex === idx && styles.paginationDotActive
+              ]} 
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 function TickerItem({ product }: { product: Product }) {
   const isUp = product.price_direction === 'up';
@@ -1178,14 +1242,34 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   offerBannerContainer: {
-    paddingHorizontal: 20,
     marginTop: 20,
     marginBottom: 5,
+  },
+  offerBannerWrapper: {
+    width: width,
+    paddingHorizontal: 20,
   },
   offerBannerImage: {
     width: '100%',
     height: 160,
     borderRadius: 20,
     resizeMode: 'cover',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 6,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#ccc',
+  },
+  paginationDotActive: {
+    width: 20,
+    backgroundColor: Colors.deepTeal,
   },
 });
