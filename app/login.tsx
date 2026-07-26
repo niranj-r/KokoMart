@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Phone, User, Mail, MapPin, ArrowRight, ArrowLeft } from 'lucide-react-native';
+import { Phone, User, Mail, MapPin, ArrowRight, ArrowLeft, Lock } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { ApplicationVerifier } from 'firebase/auth';
 import { auth, firebaseConfig } from '@/config/firebaseConfig';
@@ -25,13 +25,16 @@ import OTPInput from '@/components/OTPInput';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signInWithPhone, confirmCode } = useAuth();
+  const { signInWithPhone, confirmCode, signIn, signUp } = useAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
 
   // Steps: 1 = Phone Number Input, 2 = OTP Input, 3 = Register Profile (New User Details)
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
+  const [emailMode, setEmailMode] = useState<'login' | 'signup'>('login');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tempUid, setTempUid] = useState('');
 
@@ -216,6 +219,75 @@ export default function LoginScreen() {
     }
   };
 
+  const handleEmailLogin = async () => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      showBanner('error', 'Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      showBanner('error', 'Please enter your password.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await signIn(email.trim(), password);
+      showBanner('success', 'Logged in successfully!');
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 1500);
+    } catch (e: any) {
+      console.error("[EmailLogin] Error:", e);
+      showBanner('error', e.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignup = async () => {
+    if (!name.trim() || name.trim().length < 2) {
+      showBanner('error', 'Please enter a valid name (at least 2 characters).');
+      return;
+    }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      showBanner('error', 'Please enter a valid email address.');
+      return;
+    }
+    if (!password || password.length < 6) {
+      showBanner('error', 'Password must be at least 6 characters long.');
+      return;
+    }
+    if (!phoneNumber || !/^\d{10}$/.test(phoneNumber)) {
+      showBanner('error', 'Please enter a valid 10-digit phone number.');
+      return;
+    }
+    if (!houseDetails.trim() || !landmark.trim() || !place.trim() || !city.trim() || !pincode.trim()) {
+      showBanner('error', 'Please fill in all address fields.');
+      return;
+    }
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      showBanner('error', 'Please enter a valid 6-digit pincode.');
+      return;
+    }
+
+    setIsLoading(true);
+    const formattedAddress = `${houseDetails}, ${landmark}, ${place}, ${city}, ${state} - ${pincode}`;
+    const formattedPhone = `+91${phoneNumber}`;
+
+    try {
+      await signUp(email.trim(), password, name, formattedPhone, formattedAddress);
+      showBanner('success', 'Account created successfully! Welcome to MeatUp!');
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 1500);
+    } catch (e: any) {
+      console.error("[EmailSignup] Error:", e);
+      showBanner('error', e.message || 'Signup failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRecaptchaMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
@@ -338,6 +410,23 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             {step === 1 && (
+              <View style={styles.toggleContainer}>
+                <TouchableOpacity
+                  style={[styles.toggleButton, authMethod === 'phone' && styles.toggleButtonActive]}
+                  onPress={() => setAuthMethod('phone')}
+                >
+                  <Text style={[styles.toggleText, authMethod === 'phone' && styles.toggleTextActive]}>Phone</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleButton, authMethod === 'email' && styles.toggleButtonActive]}
+                  onPress={() => setAuthMethod('email')}
+                >
+                  <Text style={[styles.toggleText, authMethod === 'email' && styles.toggleTextActive]}>Email</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {authMethod === 'phone' && step === 1 && (
               <>
                 <Text style={styles.header}>Verify Mobile</Text>
                 <Text style={styles.subHeader}>We'll send you an OTP to verify your account.</Text>
@@ -397,7 +486,7 @@ export default function LoginScreen() {
               </>
             )}
 
-            {step === 2 && (
+            {authMethod === 'phone' && step === 2 && (
               <>
                 <Text style={styles.header}>Enter OTP</Text>
                 <Text style={styles.subHeader}>Please enter the 6-digit OTP code sent to +91 {phoneNumber}</Text>
@@ -438,7 +527,7 @@ export default function LoginScreen() {
               </>
             )}
 
-            {step === 3 && (
+            {authMethod === 'phone' && step === 3 && (
               <>
                 <Text style={styles.header}>Complete Profile</Text>
                 <Text style={styles.subHeader}>Please provide your details to complete account creation.</Text>
@@ -560,6 +649,224 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </>
             )}
+
+            {authMethod === 'email' && emailMode === 'login' && (
+              <>
+                <Text style={styles.header}>Login with Email</Text>
+                <Text style={styles.subHeader}>Welcome back! Please enter your details.</Text>
+
+                <View style={styles.inputContainer}>
+                  <Mail size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email Address"
+                    placeholderTextColor={Colors.extrared}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Lock size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor={Colors.extrared}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleEmailLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <>
+                      <Text style={styles.actionButtonText}>Login</Text>
+                      <ArrowRight size={20} color={Colors.white} />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.footer}>
+                  <Text style={{ color: '#888' }}>Don't have an account?</Text>
+                  <TouchableOpacity onPress={() => setEmailMode('signup')}>
+                    <Text style={styles.linkText}>Sign Up</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {authMethod === 'email' && emailMode === 'signup' && (
+              <>
+                <Text style={styles.header}>Create Account</Text>
+                <Text style={styles.subHeader}>Please provide your details to sign up.</Text>
+
+                <View style={styles.inputContainer}>
+                  <User size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Full Name"
+                    placeholderTextColor={Colors.extrared}
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Mail size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email Address"
+                    placeholderTextColor={Colors.extrared}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Lock size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password (min 6 chars)"
+                    placeholderTextColor={Colors.extrared}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View style={styles.phoneInputRow}>
+                  <View style={styles.countryCodeContainer}>
+                    <Text style={styles.countryCodeText}>+91</Text>
+                  </View>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <Phone size={20} color={Colors.extrared} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="10-Digit Mobile Number"
+                      placeholderTextColor={Colors.extrared}
+                      value={phoneNumber}
+                      onChangeText={(val) => setPhoneNumber(val.replace(/[^0-9]/g, ''))}
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      editable={!isLoading}
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.sectionHeader}>Delivery Address</Text>
+
+                <View style={styles.inputContainer}>
+                  <MapPin size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="House No. & Name"
+                    placeholderTextColor={Colors.extrared}
+                    value={houseDetails}
+                    onChangeText={setHouseDetails}
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <MapPin size={20} color={Colors.extrared} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Landmark"
+                    placeholderTextColor={Colors.extrared}
+                    value={landmark}
+                    onChangeText={setLandmark}
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View style={styles.rowContainer}>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Place/Area"
+                      placeholderTextColor={Colors.extrared}
+                      value={place}
+                      onChangeText={setPlace}
+                      editable={!isLoading}
+                    />
+                  </View>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="City"
+                      placeholderTextColor={Colors.extrared}
+                      value={city}
+                      onChangeText={setCity}
+                      editable={!isLoading}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.rowContainer}>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="State"
+                      placeholderTextColor={Colors.extrared}
+                      value={state}
+                      onChangeText={setState}
+                      editable={!isLoading}
+                    />
+                  </View>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Pincode"
+                      placeholderTextColor={Colors.extrared}
+                      value={pincode}
+                      onChangeText={(val) => setPincode(val.replace(/[^0-9]/g, ''))}
+                      keyboardType="numeric"
+                      maxLength={6}
+                      editable={!isLoading}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleEmailSignup}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <>
+                      <Text style={styles.actionButtonText}>Sign Up</Text>
+                      <ArrowRight size={20} color={Colors.white} />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.footer}>
+                  <Text style={{ color: '#888' }}>Already have an account?</Text>
+                  <TouchableOpacity onPress={() => setEmailMode('login')}>
+                    <Text style={styles.linkText}>Login</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -616,6 +923,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  toggleButtonActive: {
+    backgroundColor: Colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  toggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#888',
+  },
+  toggleTextActive: {
+    color: Colors.orange,
   },
   header: {
     fontSize: 24,
