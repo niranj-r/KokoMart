@@ -36,12 +36,12 @@ export default function HomeScreen() {
   const [selectedSort, setSelectedSort] = useState<'default' | 'price_asc' | 'price_desc' | 'available'>('default');
   const tickerPosition = useRef(new Animated.Value(0)).current;
 
-  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string } | null>(null);
+  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string, offer_banner_url?: string } | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "store"), (docSnap) => {
       if (docSnap.exists()) {
-        setStoreSettings(docSnap.data() as { opening_time?: string });
+        setStoreSettings(docSnap.data() as { opening_time?: string, offer_banner_url?: string });
       }
     }, (err) => {
       console.log("Error loading store settings", err);
@@ -275,6 +275,15 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {storeSettings?.offer_banner_url && (
+          <View style={styles.offerBannerContainer}>
+            <Image 
+              source={{ uri: storeSettings.offer_banner_url }} 
+              style={styles.offerBannerImage}
+            />
+          </View>
+        )}
+        
         {allProductsOutOfStock && (
           <View style={styles.bannerContainer}>
             <LinearGradient
@@ -1167,5 +1176,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#fffeefff',
     opacity: 0.8,
+  },
+  offerBannerContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 5,
+  },
+  offerBannerImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 20,
+    resizeMode: 'cover',
   },
 });
