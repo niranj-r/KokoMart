@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react-native';
+import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, ChevronLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 import StatusBanner from '@/components/StatusBanner';
@@ -38,7 +38,12 @@ export default function CartScreen() {
   const renderHeader = () => (
     <View style={[styles.headerBg, { paddingTop: insets.top }]}>
       <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>My Cart</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
+            <ChevronLeft size={28} color={Colors.cream} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Cart</Text>
+        </View>
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>{cart.length} items</Text>
         </View>
@@ -154,7 +159,7 @@ export default function CartScreen() {
           </View>
 
           <View style={styles.pointsBadge}>
-            <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
+            <Image source={require('../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
             <Text style={styles.pointsText}>
               You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => {
                 const unit = item.product.unit.toUpperCase();

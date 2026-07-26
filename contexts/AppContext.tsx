@@ -26,6 +26,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [walletHistory, setWalletHistory] = useState<WalletTransaction[]>([]);
   const [products, setProducts] = useState<any[]>([]);
 
+  // Preorder state
+  const [selectedDeliveryDate, setSelectedDeliveryDate] = useState<string | null>(null);
+  const [selectedDeliverySlot, setSelectedDeliverySlot] = useState<string | null>(null);
+
   // Keep ref in sync
   useEffect(() => {
     ordersRef.current = orders;
@@ -308,6 +312,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     cartTotal,
     cartItemCount,
     cartTotalWeight,
+    selectedDeliveryDate,
+    setSelectedDeliveryDate,
+    selectedDeliverySlot,
+    setSelectedDeliverySlot,
     addToCart,
     removeFromCart,
     updateCartItemPrice,

@@ -20,6 +20,7 @@ function RootLayoutNav() {
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="signup" options={{ headerShown: false }} />
       <Stack.Screen name="phone-login" options={{ headerShown: false }} />
+      <Stack.Screen name="cart" options={{ headerShown: false }} />
     </Stack>
   );
 }
