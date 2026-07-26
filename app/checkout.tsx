@@ -62,12 +62,11 @@ export default function CheckoutScreen() {
   const handlingFee = cartTotal * platformFeeRate;
 
   // Delivery Charge Calculation
-  const freeDistance = 7;
-  const ratePerKm = 5;
+  const ratePerKm = 7;
   let deliveryCharge = 0;
 
-  if (deliveryDistance && deliveryDistance > freeDistance) {
-    deliveryCharge = Math.ceil((deliveryDistance - freeDistance) * ratePerKm);
+  if (deliveryDistance !== null && deliveryDistance >= 0) {
+    deliveryCharge = Math.max(1, Math.ceil(deliveryDistance)) * ratePerKm;
   }
 
   const maxWalletRedemption = Math.min(user.wallet_points, cartTotal + taxAmount + handlingFee + deliveryCharge);

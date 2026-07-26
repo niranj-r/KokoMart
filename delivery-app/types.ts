@@ -15,7 +15,6 @@ export interface UserProfile {
     name: string;
     phone: string;
     email: string;
-    is_first_order_completed: boolean;
     wallet_points: number;
     created_at: number; // Timestamp
     address?: string;

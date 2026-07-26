@@ -203,8 +203,7 @@ export default function LoginScreen() {
         email: email.trim(), // Optional Email address
         phone: `+91${phoneNumber}`,
         address: formattedAddress,
-        wallet_points: 0, // Initializing with 0 points
-        is_first_order_completed: false // Initializing with false
+        wallet_points: 0 // Initializing with 0 points
       });
 
       showBanner('success', 'Account created successfully! Welcome to MeatUp!');
