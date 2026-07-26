@@ -29,7 +29,7 @@ import { firebaseConfig } from '@/config/firebaseConfig';
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { cart, cartTotal, user, placeOrder, isGuest, saveAddress } = useApp();
+  const { cart, cartTotal, user, placeOrder, isGuest, saveAddress, selectedDeliveryDate, selectedDeliverySlot } = useApp();
   const [address, setAddress] = useState(user.address || '');
   const [useWalletPoints, setUseWalletPoints] = useState(false);
   const [note, setNote] = useState('');
@@ -290,9 +290,9 @@ export default function CheckoutScreen() {
       return;
     }
 
-    const slotString = deliveryTime
-      ? `Within ${deliveryTime} mins`
-      : 'Standard Delivery';
+    const slotString = (selectedDeliveryDate && selectedDeliverySlot)
+      ? `${selectedDeliveryDate} • ${selectedDeliverySlot}`
+      : (deliveryTime ? `Within ${deliveryTime} mins` : 'Standard Delivery');
 
     if (paymentMethod === 'cod') {
       try {
@@ -374,9 +374,9 @@ export default function CheckoutScreen() {
     setShowRazorpayGateway(false);
 
     // Create actual order in Firebase now that payment succeeded
-    const slotString = deliveryTime
-      ? `Within ${deliveryTime} mins`
-      : 'Standard Delivery';
+    const slotString = (selectedDeliveryDate && selectedDeliverySlot)
+      ? `${selectedDeliveryDate} • ${selectedDeliverySlot}`
+      : (deliveryTime ? `Within ${deliveryTime} mins` : 'Standard Delivery');
 
     try {
       const paymentDetails = {
@@ -594,9 +594,13 @@ export default function CheckoutScreen() {
                 <Clock size={20} color={Colors.deepTeal} />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Estimated Arrival</Text>
+                <Text style={styles.infoLabel}>
+                  {(selectedDeliveryDate && selectedDeliverySlot) ? 'Scheduled Delivery' : 'Estimated Arrival'}
+                </Text>
                 <Text style={styles.infoValue}>
-                  {deliveryTime ? `${deliveryTime} mins` : 'Calculating...'}
+                  {(selectedDeliveryDate && selectedDeliverySlot) 
+                    ? `${selectedDeliveryDate}\n${selectedDeliverySlot}` 
+                    : (deliveryTime ? `${deliveryTime} mins` : 'Calculating...')}
                 </Text>
               </View>
               {deliveryDistance && (
