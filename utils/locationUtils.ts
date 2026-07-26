@@ -3,7 +3,7 @@ export const STORE_LOCATION = {
     longitude: 76.9046489, // Pincode 695016 base location
 };
 
-// Haversine formula to calculate straight-line distance between two points
+// Haversine formula to calculate distance between two points in km
 export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1);
@@ -21,9 +21,9 @@ const deg2rad = (deg: number): number => {
     return deg * (Math.PI / 180);
 };
 
-export const calculateDeliveryTime = (distanceKm: number, skipRoadMultiplier: boolean = false): number => {
-    // If skipRoadMultiplier is true (e.g. actual road distance), we don't apply the curvature factor
-    const roadDistance = skipRoadMultiplier ? distanceKm : distanceKm * 1.4;
+export const calculateDeliveryTime = (distanceKm: number, isAlreadyRoadDistance: boolean = false): number => {
+    // If it's already road distance (e.g. from Google Maps), don't multiply by 1.4
+    const roadDistance = isAlreadyRoadDistance ? distanceKm : distanceKm * 1.4;
 
     const baseTime = 30; // 30 mins for first 7 km
     const baseDistance = 7;
@@ -38,90 +38,50 @@ export const calculateDeliveryTime = (distanceKm: number, skipRoadMultiplier: bo
     return baseTime + extraTime;
 };
 
-export interface GoogleDistanceData {
+export interface GoogleDistanceResponse {
     distanceKm: number;
     durationMins: number;
 }
 
-/**
- * Calls Google Routes API v2 to calculate driving distance along road networks.
- * Returns null if API call fails or if no route can be resolved.
- */
 export const getGoogleMapsDistance = async (
-    userLat: number,
-    userLon: number,
-    storeLat: number,
-    storeLon: number,
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
     apiKey: string
-): Promise<GoogleDistanceData | null> => {
+): Promise<GoogleDistanceResponse | null> => {
     try {
-        if (!apiKey) {
-            console.warn('[GoogleMapsDistance] Google API key is missing.');
-            return null;
-        }
-
-        const response = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
+        const url = 'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
+        const requestBody = {
+            origins: [{ waypoint: { location: { latLng: { latitude: lat1, longitude: lon1 } } } }],
+            destinations: [{ waypoint: { location: { latLng: { latitude: lat2, longitude: lon2 } } } }],
+            travelMode: 'DRIVE',
+            routingPreference: 'TRAFFIC_AWARE'
+        };
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Goog-Api-Key': apiKey,
-                'X-Goog-FieldMask': 'originIndex,destinationIndex,status,condition,distanceMeters,duration',
+                'X-Goog-FieldMask': 'originIndex,destinationIndex,status,distanceMeters,duration'
             },
-            body: JSON.stringify({
-                origins: [{ waypoint: { location: { latLng: { latitude: userLat, longitude: userLon } } } }],
-                destinations: [{ waypoint: { location: { latLng: { latitude: storeLat, longitude: storeLon } } } }],
-                travelMode: 'DRIVE',
-                routingPreference: 'TRAFFIC_AWARE',
-            }),
+            body: JSON.stringify(requestBody)
         });
-
-        if (!response.ok) {
-            let errorText = '';
-            try {
-                errorText = await response.text();
-            } catch (e) {
-                errorText = 'Could not read response error body';
-            }
-            console.error('[GoogleMapsDistance] Routes API HTTP error status:', response.status, 'Body:', errorText);
-            return null;
-        }
-
         const data = await response.json();
-        if (!Array.isArray(data) || data.length === 0) {
-            console.warn('[GoogleMapsDistance] Routes API returned empty or invalid matrix.');
-            return null;
-        }
-
-        const result = data[0];
-        if (!result || result.condition === 'ROUTE_NOT_FOUND') {
-            console.warn('[GoogleMapsDistance] Route not found between origin and destination.');
-            return null;
-        }
-
-        // If the element status specifies an error (e.g. invalid locations)
-        if (result.status && result.status.code && result.status.code !== 0) {
-            console.error('[GoogleMapsDistance] Route element error status:', result.status);
-            return null;
-        }
-
-        const distanceMeters = result.distanceMeters;
-        // In proto3 JSON, 0 is default and can be omitted. If condition is ROUTE_EXISTS, distance is 0.
-        const distanceKm = distanceMeters !== undefined ? distanceMeters / 1000 : 0;
-        
-        let durationMins = 0;
-        if (result.duration) {
-            const seconds = parseFloat(result.duration.replace('s', ''));
-            if (!isNaN(seconds)) {
-                durationMins = Math.ceil(seconds / 60);
+        if (Array.isArray(data) && data.length > 0) {
+            const result = data[0];
+            
+            if (result.condition === 'ROUTE_NOT_FOUND') return null;
+            if (result.distanceMeters !== undefined && result.duration !== undefined) {
+                const durationSeconds = parseInt(result.duration.replace('s', ''));
+                return {
+                    distanceKm: result.distanceMeters / 1000,
+                    durationMins: Math.ceil(durationSeconds / 60)
+                };
             }
         }
-
-        return {
-            distanceKm,
-            durationMins,
-        };
+        return null;
     } catch (error) {
-        console.error('[GoogleMapsDistance] Fetch failed:', error);
         return null;
     }
 };

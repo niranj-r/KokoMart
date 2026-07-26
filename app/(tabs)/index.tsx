@@ -36,12 +36,12 @@ export default function HomeScreen() {
   const [selectedSort, setSelectedSort] = useState<'default' | 'price_asc' | 'price_desc' | 'available'>('default');
   const tickerPosition = useRef(new Animated.Value(0)).current;
 
-  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string } | null>(null);
+  const [storeSettings, setStoreSettings] = useState<{ opening_time?: string, offer_banner_url?: string } | null>(null);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "settings", "store"), (docSnap) => {
       if (docSnap.exists()) {
-        setStoreSettings(docSnap.data() as { opening_time?: string });
+        setStoreSettings(docSnap.data() as { opening_time?: string, offer_banner_url?: string });
       }
     }, (err) => {
       console.log("Error loading store settings", err);
@@ -219,49 +219,53 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Category Chips — always visible horizontal scroll */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-          style={{ marginTop: 10 }}
-        >
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text style={[styles.categoryChipText, selectedCategory === cat && styles.categoryChipTextActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Sort Panel — shown when filter button is tapped */}
+        {/* Filter & Sort Panel — shown when filter button is tapped */}
         {filterVisible && (
-          <View style={styles.filterPanel}>
-            <Text style={styles.sortLabel}>Sort by:</Text>
-            {([
-              { key: 'default', label: 'Default' },
-              { key: 'available', label: '✓ In Stock' },
-              { key: 'price_asc', label: 'Price ↑' },
-              { key: 'price_desc', label: 'Price ↓' },
-            ] as const).map(({ key, label }) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.filterChip, selectedSort === key && styles.filterChipActive]}
-                onPress={() => {
-                  setSelectedSort(key);
-                  setFilterVisible(false);
-                }}
+          <View style={styles.filterContainer}>
+            <View style={styles.filterSection}>
+              <Text style={[styles.sortLabel, { alignSelf: 'flex-start', marginLeft: 24, marginBottom: 8 }]}>Category:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryRow}
               >
-                <Text style={[styles.filterChipText, selectedSort === key && styles.filterChipTextActive]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    <Text style={[styles.categoryChipText, selectedCategory === cat && styles.categoryChipTextActive]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={[styles.sortLabel, { alignSelf: 'flex-start', marginLeft: 24, marginBottom: 8 }]}>Sort by:</Text>
+              <View style={[styles.filterPanel, { marginTop: 0, paddingBottom: 12 }]}>
+                {([
+                  { key: 'default', label: 'Default' },
+                  { key: 'available', label: '✓ In Stock' },
+                  { key: 'price_asc', label: 'Price ↑' },
+                  { key: 'price_desc', label: 'Price ↓' },
+                ] as const).map(({ key, label }) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.filterChip, selectedSort === key && styles.filterChipActive]}
+                    onPress={() => {
+                      setSelectedSort(key);
+                    }}
+                  >
+                    <Text style={[styles.filterChipText, selectedSort === key && styles.filterChipTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
         )}
       </View>
@@ -271,6 +275,15 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {storeSettings?.offer_banner_url && (
+          <View style={styles.offerBannerContainer}>
+            <Image 
+              source={{ uri: storeSettings.offer_banner_url }} 
+              style={styles.offerBannerImage}
+            />
+          </View>
+        )}
+        
         {allProductsOutOfStock && (
           <View style={styles.bannerContainer}>
             <LinearGradient
@@ -634,6 +647,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.orange,
     borderWidth: 1,
     borderColor: Colors.white,
+  },
+  filterContainer: {
+    marginTop: 16,
+    gap: 12,
+  },
+  filterSection: {
   },
   filterPanel: {
     flexDirection: 'row',
@@ -1157,5 +1176,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#fffeefff',
     opacity: 0.8,
+  },
+  offerBannerContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 5,
+  },
+  offerBannerImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 20,
+    resizeMode: 'cover',
   },
 });
