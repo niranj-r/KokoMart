@@ -296,6 +296,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
 
       clearCart();
+      setSelectedDeliveryDate(null);
+      setSelectedDeliverySlot(null);
       return result;
     } catch (e) {
       console.error("Order Failed", e);

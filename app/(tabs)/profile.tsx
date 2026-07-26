@@ -391,6 +391,37 @@ export default function ProfileScreen() {
         </View>
       )}
 
+        {/* Legal Links Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Legal & Account</Text>
+          <View style={styles.infoCard}>
+            <TouchableOpacity 
+              style={styles.legalLinkRow}
+              onPress={() => Linking.openURL('https://www.meatupfresh.in/privacypolicy')}
+            >
+              <Text style={styles.legalLinkText}>Privacy Policy</Text>
+            </TouchableOpacity>
+            
+            <View style={[styles.divider, { marginLeft: 0 }]} />
+            
+            <TouchableOpacity 
+              style={styles.legalLinkRow}
+              onPress={() => Linking.openURL('https://www.meatupfresh.in/terms')}
+            >
+              <Text style={styles.legalLinkText}>Terms & Conditions</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { marginLeft: 0 }]} />
+            
+            <TouchableOpacity 
+              style={styles.legalLinkRow}
+              onPress={() => Linking.openURL('https://www.meatupfresh.in/accountdelete')}
+            >
+              <Text style={[styles.legalLinkText, { color: Colors.priceDown }]}>Delete Account</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Transaction History */}
         {walletHistory.length > 0 && (
           <View style={styles.sectionContainer}>
@@ -875,5 +906,13 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  legalLinkRow: {
+    paddingVertical: 12,
+  },
+  legalLinkText: {
+    fontSize: 16,
+    color: Colors.charcoal,
+    fontWeight: '500',
   },
 });
