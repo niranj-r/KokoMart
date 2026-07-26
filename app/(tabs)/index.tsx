@@ -219,49 +219,53 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Category Chips — always visible horizontal scroll */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-          style={{ marginTop: 10 }}
-        >
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text style={[styles.categoryChipText, selectedCategory === cat && styles.categoryChipTextActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Sort Panel — shown when filter button is tapped */}
+        {/* Filter & Sort Panel — shown when filter button is tapped */}
         {filterVisible && (
-          <View style={styles.filterPanel}>
-            <Text style={styles.sortLabel}>Sort by:</Text>
-            {([
-              { key: 'default', label: 'Default' },
-              { key: 'available', label: '✓ In Stock' },
-              { key: 'price_asc', label: 'Price ↑' },
-              { key: 'price_desc', label: 'Price ↓' },
-            ] as const).map(({ key, label }) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.filterChip, selectedSort === key && styles.filterChipActive]}
-                onPress={() => {
-                  setSelectedSort(key);
-                  setFilterVisible(false);
-                }}
+          <View style={styles.filterContainer}>
+            <View style={styles.filterSection}>
+              <Text style={[styles.sortLabel, { alignSelf: 'flex-start', marginLeft: 24, marginBottom: 8 }]}>Category:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryRow}
               >
-                <Text style={[styles.filterChipText, selectedSort === key && styles.filterChipTextActive]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    <Text style={[styles.categoryChipText, selectedCategory === cat && styles.categoryChipTextActive]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={[styles.sortLabel, { alignSelf: 'flex-start', marginLeft: 24, marginBottom: 8 }]}>Sort by:</Text>
+              <View style={[styles.filterPanel, { marginTop: 0, paddingBottom: 12 }]}>
+                {([
+                  { key: 'default', label: 'Default' },
+                  { key: 'available', label: '✓ In Stock' },
+                  { key: 'price_asc', label: 'Price ↑' },
+                  { key: 'price_desc', label: 'Price ↓' },
+                ] as const).map(({ key, label }) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.filterChip, selectedSort === key && styles.filterChipActive]}
+                    onPress={() => {
+                      setSelectedSort(key);
+                    }}
+                  >
+                    <Text style={[styles.filterChipText, selectedSort === key && styles.filterChipTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
         )}
       </View>
@@ -634,6 +638,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.orange,
     borderWidth: 1,
     borderColor: Colors.white,
+  },
+  filterContainer: {
+    marginTop: 16,
+    gap: 12,
+  },
+  filterSection: {
   },
   filterPanel: {
     flexDirection: 'row',
