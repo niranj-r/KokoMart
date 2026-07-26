@@ -22,10 +22,19 @@ if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
     logger.warn("Razorpay API keys are missing. Please check your Firebase environment variables.");
 }
 
-const razorpay = new Razorpay({
-    key_id: RAZORPAY_KEY_ID,
-    key_secret: RAZORPAY_KEY_SECRET,
-});
+let razorpayInstance = null;
+function getRazorpay() {
+    if (!razorpayInstance) {
+        if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+            throw new Error("Razorpay API keys are missing. Please check your Firebase environment variables.");
+        }
+        razorpayInstance = new Razorpay({
+            key_id: RAZORPAY_KEY_ID,
+            key_secret: RAZORPAY_KEY_SECRET,
+        });
+    }
+    return razorpayInstance;
+}
 
 exports.createRazorpayOrder = onCall({ cors: ["http://localhost:3000", "https://meatup-f8c49.web.app", "https://meatup-f8c49.firebaseapp.com"] }, async (request) => {
     // Authentication extraction from context
@@ -50,7 +59,7 @@ exports.createRazorpayOrder = onCall({ cors: ["http://localhost:3000", "https://
     };
 
     try {
-        const order = await razorpay.orders.create(options);
+        const order = await getRazorpay().orders.create(options);
         logger.info("Razorpay Order Created", { orderId: order.id });
         return {
             id: order.id,

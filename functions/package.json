@@ -9,12 +9,12 @@
         "logs": "npx firebase-tools functions:log"
     },
     "engines": {
-        "node": "18"
+        "node": "20"
     },
     "main": "index.js",
     "dependencies": {
-        "firebase-admin": "^12.6.0",
-        "firebase-functions": "^6.0.0",
+        "firebase-admin": "^14.2.0",
+        "firebase-functions": "^7.3.2-rc.0",
         "razorpay": "^2.9.4",
         "twilio": "^6.0.2"
     },
