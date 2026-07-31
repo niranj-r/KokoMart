@@ -313,7 +313,7 @@ export default function CheckoutScreen() {
         console.log("DEBUG: Calling createRazorpayOrder Firebase Function...");
         
         // 1. Create Order via Firebase Cloud Function
-        const createOrder = httpsCallable(functions, 'createRazorpayOrder');
+        const createOrder = httpsCallable(functions, 'createRazorpayOrderV2');
         const response = await createOrder({ amount: finalTotal, currency: 'INR' });
         
         const orderData = response.data as { id: string; amount: number; currency: string };
